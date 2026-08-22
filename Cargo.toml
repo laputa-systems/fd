@@ -87,9 +87,11 @@ inherits = "dev"
 debug = true
 
 [profile.release]
-lto = true
-strip = true
+opt-level = 3
+lto = "fat"
 codegen-units = 1
+panic = "abort"
+strip = true
 
 [features]
 use-jemalloc = ["tikv-jemallocator"]
