@@ -30,16 +30,28 @@ jobs:
         include:
           - runner: macos-26
             target: aarch64-apple-darwin
+            linux: false
           - runner: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
+            target: x86_64-unknown-linux-musl
+            linux: true
           - runner: ubuntu-24.04-arm
-            target: aarch64-unknown-linux-gnu
+            target: aarch64-unknown-linux-musl
+            linux: true
 
     steps:
       - uses: actions/checkout@v4
       - uses: laputa-systems/setup-rust@a7d09bfe692e431e6a98cd107ac2df77d47b5bba
 
+      - name: Install Linux linkers
+        if: matrix.linux
+        run: sudo apt-get update && sudo apt-get install --yes mold musl-tools
+      - name: Install Rust target
+        run: rustup target add "${{ matrix.target }}"
       - name: Build release
+        env:
+          CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER: musl-gcc
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: musl-gcc
+          RUSTFLAGS: ${{ matrix.linux && '-C link-arg=-fuse-ld=mold' || '' }}
         run: cargo build --locked --release --bin fd --target "${{ matrix.target }}"
 
       - name: Package binary
