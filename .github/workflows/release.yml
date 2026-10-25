@@ -57,7 +57,7 @@ jobs:
         env:
           CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER: musl-gcc
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: musl-gcc
-          RUSTFLAGS: ${{ matrix.linux && '-C target-feature=+crt-static -C link-arg=-fuse-ld=mold' || '' }}
+          RUSTFLAGS: ${{ matrix.linux && '-C target-feature=+crt-static -C link-arg=-fuse-ld=mold -C link-arg=-static' || '' }}
         run: cargo build --locked --profile dist --bin fd --target "${{ matrix.target }}"
 
       - name: Package binary
