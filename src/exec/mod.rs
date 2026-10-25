@@ -455,32 +455,4 @@ mod tests {
         check!("foo/bar", "foo#bar");
         check!("/foo/bar/baz", "#foo#bar#baz");
     }
-
-    #[cfg(windows)]
-    #[test]
-    fn generate_custom_path_separator_windows() {
-        let arg = FormatTemplate::Tokens(vec![Token::Placeholder]);
-        macro_rules! check {
-            ($input:expr, $expected:expr) => {
-                assert_eq!(arg.generate($input, Some("#")), OsString::from($expected));
-            };
-        }
-
-        // path starting with a drive letter
-        check!(r"C:\foo\bar", "C:#foo#bar");
-        // UNC path
-        check!(r"\\server\share\path", "##server#share#path");
-        // Drive Relative path - no separator after the colon omits the RootDir path component.
-        // This is uncommon, but valid
-        check!(r"C:foo\bar", "C:foo#bar");
-
-        // forward slashes should get normalized and interpreted as separators
-        check!("C:/foo/bar", "C:#foo#bar");
-        check!("C:foo/bar", "C:foo#bar");
-
-        // Rust does not interpret "//server/share" as a UNC path, but rather as a normal
-        // absolute path that begins with RootDir, and the two slashes get combined together as
-        // a single path separator during normalization.
-        //check!("//server/share/path", "##server#share#path");
-    }
 }

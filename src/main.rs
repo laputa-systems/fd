@@ -43,7 +43,6 @@ use crate::regex_helper::{pattern_has_uppercase_char, pattern_matches_strings_wi
 // This has to be kept in sync with the Cargo.toml file section that declares a
 // dependency on tikv-jemallocator.
 #[cfg(all(
-    not(windows),
     not(target_os = "android"),
     not(target_os = "macos"),
     not(target_os = "freebsd"),
@@ -156,19 +155,11 @@ fn set_working_dir(opts: &Opts) -> Result<()> {
 /// Without `--full-path`, fd matches patterns against file names, so any pattern
 /// containing a path separator can never match. This applies to the primary
 /// positional pattern *and* to every `--and` pattern, since all of them are
-/// chained together and matched against the file name (see `run`). Two cases per
-/// pattern are worth a friendly error rather than silent "no results":
+/// chained together and matched against the file name (see `run`).
 ///
-/// 1. The pattern contains '/'. '/' is always a path separator (including on
-///    Windows) and has no regex meaning, so flagging it is safe and catches the
-///    common Linux/macOS mistake of pasting a full path as the pattern.
-/// 2. On Windows only, the pattern contains the native `\` separator *and*
-///    names an existing directory on disk. We can't treat `\` as a pure
-///    path-separator signal there because it is also the regex escape char,
-///    so valid regex patterns like `\Ac` or `\d+` must still run. Requiring
-///    that the pattern resolves to a real directory avoids those false
-///    positives while preserving the legacy diagnostic for operators who
-///    literally typed a directory path.
+/// The pattern contains '/'. '/' is always a path separator and has no regex
+/// meaning, so flagging it is safe and catches the common mistake of pasting a
+/// full path as the pattern.
 ///
 /// See https://github.com/sharkdp/fd/issues/1873.
 fn ensure_search_pattern_is_not_a_path(opts: &Opts) -> Result<()> {
@@ -186,26 +177,9 @@ fn ensure_search_pattern_is_not_a_path(opts: &Opts) -> Result<()> {
 }
 
 /// Apply the path-separator diagnostic to a single pattern. See
-/// [`ensure_search_pattern_is_not_a_path`] for the rationale of each case.
+/// [`ensure_search_pattern_is_not_a_path`] for the rationale.
 fn ensure_single_search_pattern_is_not_a_path(pattern: &str) -> Result<()> {
-    // Start with the cheap check: '/' is always a path separator, including on
-    // Windows, and has no regex meaning, so flagging it is safe and catches the
-    // Linux/macOS mistake of pasting a full path as the pattern.
-    #[cfg_attr(not(windows), allow(unused_mut))]
-    let mut should_warn = pattern.contains('/');
-
-    // On Windows we additionally accept the native `\` separator, but only when
-    // the pattern actually resolves to an existing directory - `\` is also the
-    // regex escape char there, so valid patterns like `\Ac` or `\d+` must still
-    // run. The is_dir syscall is only needed when `should_warn` is still false,
-    // so short-circuit via `||` to avoid the stat call on the happy path.
-    #[cfg(windows)]
-    {
-        should_warn = should_warn
-            || (pattern.contains(std::path::MAIN_SEPARATOR) && Path::new(pattern).is_dir());
-    }
-
-    if should_warn {
+    if pattern.contains('/') {
         Err(anyhow!(
             "The search pattern '{pattern}' contains a path-separation character \
              and will not lead to any search results.\n\n\
@@ -236,20 +210,6 @@ fn build_pattern_regex(pattern: &str, opts: &Opts) -> Result<String> {
     })
 }
 
-fn check_path_separator_length(path_separator: Option<&str>) -> Result<()> {
-    match (cfg!(windows), path_separator) {
-        (true, Some(sep)) if sep.len() > 1 => Err(anyhow!(
-            "A path separator must be exactly one byte, but \
-                 the given separator is {} bytes: '{}'.\n\
-                 In some shells on Windows, '/' is automatically \
-                 expanded. Try to use '//' instead.",
-            sep.len(),
-            sep
-        )),
-        _ => Ok(()),
-    }
-}
-
 fn construct_config(mut opts: Opts, pattern_regexps: &[String]) -> Result<Config> {
     // The search will be case-sensitive if the command line flag is set or
     // if any of the patterns has an uppercase character (smart case).
@@ -259,25 +219,15 @@ fn construct_config(mut opts: Opts, pattern_regexps: &[String]) -> Result<Config
                 .iter()
                 .any(|pat| pattern_has_uppercase_char(pat)));
 
-    let path_separator = opts
-        .path_separator
-        .take()
-        .or_else(filesystem::default_path_separator);
+    let path_separator = opts.path_separator.take();
     let actual_path_separator = path_separator
         .clone()
         .unwrap_or_else(|| std::path::MAIN_SEPARATOR.to_string());
-    check_path_separator_length(path_separator.as_deref())?;
 
     let size_limits = std::mem::take(&mut opts.size);
     let time_constraints = extract_time_constraints(&opts)?;
     #[cfg(unix)]
     let owner_constraint: Option<OwnerFilter> = opts.owner.and_then(OwnerFilter::filter_ignore);
-
-    #[cfg(windows)]
-    let ansi_colors_support =
-        nu_ansi_term::enable_ansi_support().is_ok() || std::env::var_os("TERM").is_some();
-    #[cfg(not(windows))]
-    let ansi_colors_support = true;
 
     let interactive_terminal = std::io::stdout().is_terminal();
 
@@ -286,7 +236,7 @@ fn construct_config(mut opts: Opts, pattern_regexps: &[String]) -> Result<Config
         ColorWhen::Never => false,
         ColorWhen::Auto => {
             let no_color = env::var_os("NO_COLOR").is_some_and(|x| !x.is_empty());
-            ansi_colors_support && !no_color && interactive_terminal
+            !no_color && interactive_terminal
         }
     };
 
@@ -408,51 +358,21 @@ fn determine_ls_command(colored_output: bool) -> Result<Vec<&'static str>> {
             color_arg,
         ]
     };
-    let cmd: Vec<&str> = if cfg!(unix) {
-        if !cfg!(any(
-            target_os = "macos",
-            target_os = "dragonfly",
-            target_os = "freebsd",
-            target_os = "netbsd",
-            target_os = "openbsd"
-        )) {
-            // Assume ls is GNU ls
-            gnu_ls("ls")
-        } else {
-            // macOS, DragonFlyBSD, FreeBSD
-            use std::process::{Command, Stdio};
-
-            // Use GNU ls, if available (support for --color=auto, better LS_COLORS support)
-            let gnu_ls_exists = Command::new("gls")
-                .arg("--version")
-                .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .status()
-                .is_ok();
-
-            if gnu_ls_exists {
-                gnu_ls("gls")
-            } else {
-                let mut cmd = vec![
-                    "ls", // BSD version of ls
-                    "-l", // long listing format
-                    "-h", // '--human-readable' is not available, '-h' is
-                    "-d", // '--directory' is not available, but '-d' is
-                ];
-
-                if !cfg!(any(target_os = "netbsd", target_os = "openbsd")) && colored_output {
-                    // -G is not available in NetBSD's and OpenBSD's ls
-                    cmd.push("-G");
-                }
-
-                cmd
-            }
-        }
-    } else if cfg!(windows) {
+    let cmd: Vec<&str> = if !cfg!(any(
+        target_os = "macos",
+        target_os = "dragonfly",
+        target_os = "freebsd",
+        target_os = "netbsd",
+        target_os = "openbsd"
+    )) {
+        // Assume ls is GNU ls
+        gnu_ls("ls")
+    } else {
+        // macOS, DragonFlyBSD, FreeBSD
         use std::process::{Command, Stdio};
 
-        // Use GNU ls, if available
-        let gnu_ls_exists = Command::new("ls")
+        // Use GNU ls, if available (support for --color=auto, better LS_COLORS support)
+        let gnu_ls_exists = Command::new("gls")
             .arg("--version")
             .stdout(Stdio::null())
             .stderr(Stdio::null())
@@ -460,16 +380,22 @@ fn determine_ls_command(colored_output: bool) -> Result<Vec<&'static str>> {
             .is_ok();
 
         if gnu_ls_exists {
-            gnu_ls("ls")
+            gnu_ls("gls")
         } else {
-            return Err(anyhow!(
-                "'fd --list-details' is not supported on Windows unless GNU 'ls' is installed."
-            ));
+            let mut cmd = vec![
+                "ls", // BSD version of ls
+                "-l", // long listing format
+                "-h", // '--human-readable' is not available, '-h' is
+                "-d", // '--directory' is not available, but '-d' is
+            ];
+
+            if !cfg!(any(target_os = "netbsd", target_os = "openbsd")) && colored_output {
+                // -G is not available in NetBSD's and OpenBSD's ls
+                cmd.push("-G");
+            }
+
+            cmd
         }
-    } else {
-        return Err(anyhow!(
-            "'fd --list-details' is not supported on this platform."
-        ));
     };
     Ok(cmd)
 }
@@ -503,8 +429,7 @@ fn ensure_use_hidden_option_for_leading_dot_pattern(
     config: &Config,
     pattern_regexps: &[String],
 ) -> Result<()> {
-    if cfg!(unix)
-        && config.ignore_hidden
+    if config.ignore_hidden
         && pattern_regexps
             .iter()
             .any(|pat| pattern_matches_strings_with_leading_dot(pat))

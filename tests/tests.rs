@@ -39,9 +39,6 @@ fn get_absolute_root_path(env: &TestEnv) -> String {
         .expect("string")
         .to_string();
 
-    #[cfg(windows)]
-    let path = path.trim_start_matches(r"\\?\").to_string();
-
     path
 }
 
@@ -399,14 +396,7 @@ fn test_pattern_with_forward_slash_is_rejected() {
 /// --full-path is the user's explicit opt-in to regex-over-full-path matching,
 /// so a path-separation character in the pattern is expected and must not
 /// trigger the diagnostic.
-///
-/// Gated off Windows: the actual match is regex-over-the-full-path, so a
-/// forward-slash pattern only matches Unix-style paths. On Windows the OS
-/// uses `\` and `one/two/c` (as a literal regex) does not match a real
-/// entry — the behaviour this test is pinning (the diagnostic does not
-/// fire) is covered by the fact that the invocation does not error.
 #[test]
-#[cfg(not(windows))]
 fn test_pattern_with_forward_slash_allowed_with_full_path() {
     let te = TestEnv::new(DEFAULT_DIRS, DEFAULT_FILES);
 
@@ -434,7 +424,6 @@ fn test_and_pattern_with_forward_slash_is_rejected() {
     // `--full-path` is the explicit opt-in and must still suppress the
     // diagnostic for `--and` patterns too (the invocation runs and matches
     // instead of erroring on the path separator).
-    #[cfg(not(windows))]
     te.assert_output(
         &["--full-path", "one/two/c", "--and", "two/c"],
         "one/two/c.foo
@@ -616,7 +605,6 @@ fn test_glob_searches() {
 }
 
 /// Glob-based searches (--glob) in combination with full path searches (--full-path)
-#[cfg(not(windows))] // TODO: make this work on Windows
 #[test]
 fn test_full_path_glob_searches() {
     let te = TestEnv::new(DEFAULT_DIRS, DEFAULT_FILES);
@@ -709,28 +697,6 @@ fn test_hidden() {
         one/two/three/d.foo
         one/two/three/directory_foo/",
     );
-}
-
-/// Hidden file attribute on Windows
-#[cfg(windows)]
-#[test]
-fn test_hidden_file_attribute() {
-    use std::os::windows::fs::OpenOptionsExt;
-
-    let te = TestEnv::new(DEFAULT_DIRS, DEFAULT_FILES);
-
-    // https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-setfileattributesa
-    const FILE_ATTRIBUTE_HIDDEN: u32 = 2;
-
-    fs::OpenOptions::new()
-        .create(true)
-        .write(true)
-        .attributes(FILE_ATTRIBUTE_HIDDEN)
-        .open(te.test_root().join("hidden-file.txt"))
-        .unwrap();
-
-    te.assert_output(&["--hidden", "hidden-file.txt"], "hidden-file.txt");
-    te.assert_output(&["hidden-file.txt"], "");
 }
 
 /// Ignored files (--no-ignore)
@@ -1027,7 +993,6 @@ fn test_no_ignore_aliases() {
     );
 }
 
-#[cfg(not(windows))]
 #[test]
 fn test_global_ignore() {
     let te = TestEnv::new(DEFAULT_DIRS, DEFAULT_FILES).global_ignore_file("one");
@@ -1039,7 +1004,6 @@ fn test_global_ignore() {
     );
 }
 
-#[cfg(not(windows))]
 #[test_case("--unrestricted", ".hidden.foo
 a.foo
 fdignored.foo
@@ -1083,8 +1047,6 @@ fn test_follow() {
 }
 
 // File system boundaries (--one-file-system)
-// Limited to Unix because, to the best of my knowledge, there is no easy way to test a use case
-// file systems mounted into the tree on Windows.
 // Not limiting depth causes massive delay under Darwin, see BurntSushi/ripgrep#1429
 #[test]
 #[cfg(unix)]
@@ -1753,15 +1715,13 @@ fn test_symlink_as_root() {
     // the array pointed to by buf, and return buf. The pathname shall contain no components that
     // are dot or dot-dot, or are symbolic links.
     //
-    // Key points:
-    // 1. The path of the current working directory of a Unix process cannot contain symlinks.
-    // 2. The path of the current working directory of a Windows process can contain symlinks.
+    // Key point:
+    // The path of the current working directory of a Unix process cannot contain symlinks.
     //
     // More:
-    // 1. On Windows, symlinks are resolved after the ".." component.
-    // 2. On Unix, symlinks are resolved immediately as encountered.
+    // On Unix, symlinks are resolved immediately as encountered.
 
-    let parent_parent = if cfg!(windows) { ".." } else { "../.." };
+    let parent_parent = "../..";
     te.assert_output_subdirectory(
         "symlink",
         &["", parent_parent],
@@ -1787,7 +1747,7 @@ fn test_symlink_as_root() {
 fn test_symlink_and_absolute_path() {
     let (te, abs_path) = get_test_env_with_abs_path(DEFAULT_DIRS, DEFAULT_FILES);
 
-    let expected_path = if cfg!(windows) { "symlink" } else { "one/two" };
+    let expected_path = "one/two";
 
     te.assert_output_subdirectory(
         "symlink",
@@ -1827,7 +1787,7 @@ fn test_symlink_and_full_path() {
     let root = te.system_root();
     let prefix = escape(&root.to_string_lossy());
 
-    let expected_path = if cfg!(windows) { "symlink" } else { "one/two" };
+    let expected_path = "one/two";
 
     te.assert_output_subdirectory(
         "symlink",
@@ -1990,9 +1950,7 @@ fn format() {
 #[test]
 fn test_exec() {
     let (te, abs_path) = get_test_env_with_abs_path(DEFAULT_DIRS, DEFAULT_FILES);
-    // TODO Windows tests: D:file.txt \file.txt \\server\share\file.txt ...
-    if !cfg!(windows) {
-        te.assert_output(
+    te.assert_output(
             &["--absolute-path", "foo", "--exec", "echo"],
             &format!(
                 "{abs_path}/a.foo
@@ -2066,11 +2024,8 @@ fn test_exec() {
         );
 
         te.assert_output(&["e1", "--exec", "printf", "%s.%s\n"], "./e1 e2.");
-    }
 }
 
-// TODO test for windows
-#[cfg(not(windows))]
 #[test]
 fn test_exec_multi() {
     let (te, abs_path) = get_test_env_with_abs_path(DEFAULT_DIRS, DEFAULT_FILES);
@@ -2130,7 +2085,6 @@ fn test_exec_multi() {
     );
 }
 
-#[cfg(not(windows))]
 #[test]
 fn test_exec_nulls() {
     let te = TestEnv::new(DEFAULT_DIRS, DEFAULT_FILES);
@@ -2150,9 +2104,7 @@ fn test_exec_batch() {
     let (te, abs_path) = get_test_env_with_abs_path(DEFAULT_DIRS, DEFAULT_FILES);
     let te = te.normalize_line(true);
 
-    // TODO Test for windows
-    if !cfg!(windows) {
-        te.assert_output(
+    te.assert_output(
             &["--absolute-path", "foo", "--exec-batch", "echo"],
             &format!(
                 "{abs_path}/a.foo {abs_path}/one/b.foo {abs_path}/one/two/C.Foo2 {abs_path}/one/two/c.foo {abs_path}/one/two/three/d.foo {abs_path}/one/two/three/directory_foo",
@@ -2219,15 +2171,10 @@ fn test_exec_batch() {
         );
 
         te.assert_failure_with_error(&["a.foo", "--exec-batch", "bash", "-c", "exit 1"], "");
-    }
 }
 
 #[test]
 fn test_exec_batch_multi() {
-    // TODO test for windows
-    if cfg!(windows) {
-        return;
-    }
     let te = TestEnv::new(DEFAULT_DIRS, DEFAULT_FILES);
 
     let output = te.assert_success_and_get_output(
@@ -2292,11 +2239,6 @@ fn test_exec_batch_multi() {
 
 #[test]
 fn test_exec_batch_with_limit() {
-    // TODO Test for windows
-    if cfg!(windows) {
-        return;
-    }
-
     let te = TestEnv::new(DEFAULT_DIRS, DEFAULT_FILES);
 
     let output = te.assert_success_and_get_output(
@@ -2611,14 +2553,7 @@ fn create_file_with_modified<P: AsRef<Path>>(path: P, duration_in_secs: u64) {
 
 #[cfg(test)]
 fn remove_symlink<P: AsRef<Path>>(path: P) {
-    #[cfg(unix)]
     fs::remove_file(path).expect("remove symlink");
-
-    // On Windows, symlinks remember whether they point to files or directories, so try both
-    #[cfg(windows)]
-    fs::remove_file(path.as_ref())
-        .or_else(|_| fs::remove_dir(path.as_ref()))
-        .expect("remove symlink");
 }
 
 #[test]
@@ -2828,8 +2763,6 @@ fn test_max_results() {
 /// Note:
 /// - the test is disabled on Darwin/OSX, since it coerces file names to UTF-8,
 ///   even when the requested file name is not valid UTF-8.
-/// - the test is currently disabled on Windows because I'm not sure how to create
-///   invalid UTF-8 files on Windows
 #[cfg(all(unix, not(target_os = "macos")))]
 #[test]
 fn test_exec_invalid_utf8() {
@@ -2945,7 +2878,6 @@ fn test_opposing(flag: &str, opposing_flags: &[&str]) {
 }
 
 /// Print error if search pattern starts with a dot and --hidden is not set
-/// (Unix only, hidden files on Windows work differently)
 #[test]
 #[cfg(unix)]
 fn test_error_if_hidden_not_set_and_pattern_starts_with_dot() {
@@ -2982,7 +2914,7 @@ fn test_strip_cwd_prefix() {
 /// When fd is ran from a non-existent working directory, but an existent
 /// directory is passed in the arguments, it should still run fine
 #[test]
-#[cfg(all(not(windows), not(target_os = "illumos")))]
+#[cfg(not(target_os = "illumos"))]
 fn test_invalid_cwd() {
     let te = TestEnv::new(&[], &[]);
 
@@ -3060,10 +2992,7 @@ fn test_gitignore_parent() {
 fn test_hyperlink() {
     let te = TestEnv::new(DEFAULT_DIRS, DEFAULT_FILES);
 
-    #[cfg(unix)]
     let hostname = nix::unistd::gethostname().unwrap().into_string().unwrap();
-    #[cfg(not(unix))]
-    let hostname = "/";
 
     let expected = format!(
         "\x1b]8;;file://{}{}/a.foo\x1b\\a.foo\x1b]8;;\x1b\\",

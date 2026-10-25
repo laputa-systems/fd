@@ -272,8 +272,7 @@ To make exclude-patterns like these permanent, you can create a `.fdignore` file
 > `fd` also supports `.ignore` files that are used by other programs such as `rg` or `ag`.
 
 If you want `fd` to ignore these patterns globally, you can put them in `fd`'s global ignore file.
-This is usually located in `~/.config/fd/ignore` in macOS or Linux, and `%APPDATA%\fd\ignore` in
-Windows.
+This is usually located in `~/.config/fd/ignore`.
 
 You may wish to include `.git/` in your `fd/ignore` file so that `.git` directories, and their contents
 are not included in output if you use the `--hidden` option.
@@ -411,7 +410,7 @@ full path (similar to the `-path` option of `find`) you need to use the `--full-
 variable [`LS_COLORS`](https://linux.die.net/man/5/dir_colors) has to be set. Typically, the value
 of this variable is set by the `dircolors` command which provides a convenient configuration format
 to define colors for different file formats.
-On most distributions, `LS_COLORS` should be set already. If you are on Windows or if you are looking
+On most distributions, `LS_COLORS` should be set already. If you are looking
 for alternative, more complete (or more colorful) variants, see [here](https://github.com/sharkdp/vivid),
 [here](https://github.com/seebi/dircolors-solarized) or
 [here](https://github.com/trapd00r/LS_COLORS).
@@ -655,25 +654,6 @@ brew install fd
 port install fd
 ```
 
-### On Windows
-
-You can download pre-built binaries from the [release page](https://github.com/sharkdp/fd/releases).
-
-Alternatively, you can install `fd` via [Scoop](http://scoop.sh):
-```
-scoop install fd
-```
-
-Or via [Chocolatey](https://chocolatey.org):
-```
-choco install fd
-```
-
-Or via [Winget](https://learn.microsoft.com/en-us/windows/package-manager/):
-```
-winget install sharkdp.fd
-```
-
 ### On GuixOS
 
 You can install [the fd package](https://guix.gnu.org/en/packages/fd-8.1.1/) from the official repo:
@@ -729,7 +709,7 @@ Note that rust version *1.90.0* or later is required.
 
 ### From binaries
 
-The [release page](https://github.com/sharkdp/fd/releases) includes precompiled binaries for Linux, macOS and Windows. Statically-linked binaries are also available: look for archives with `musl` in the file name.
+The [release page](https://github.com/sharkdp/fd/releases) includes precompiled binaries for Linux and macOS. Statically-linked binaries are also available: look for archives with `musl` in the file name.
 
 ## Development
 ```bash
