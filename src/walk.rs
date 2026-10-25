@@ -543,9 +543,13 @@ impl WorkerState {
                     }
                 }
 
-                // Filter out unwanted sizes if it is a file and we have been given size constraints.
                 if !config.size_constraints.is_empty() {
-                    if entry_path.is_file() {
+                    let is_file = match entry.file_type() {
+                        Some(file_type) if file_type.is_file() => true,
+                        Some(file_type) if file_type.is_dir() => false,
+                        _ => entry_path.is_file(),
+                    };
+                    if is_file {
                         if let Some(metadata) = entry.metadata() {
                             let file_size = metadata.len();
                             if config
