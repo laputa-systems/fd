@@ -3,7 +3,7 @@ mod input;
 use std::borrow::Cow;
 use std::ffi::{OsStr, OsString};
 use std::fmt::{self, Display, Formatter};
-use std::path::{Component, Path, Prefix};
+use std::path::{Component, Path};
 use std::sync::OnceLock;
 
 use aho_corasick::AhoCorasick;
@@ -27,12 +27,12 @@ pub enum Token {
 impl Display for Token {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match *self {
-            Token::Placeholder => f.write_str("{}")?,
-            Token::Basename => f.write_str("{/}")?,
-            Token::Parent => f.write_str("{//}")?,
-            Token::NoExt => f.write_str("{.}")?,
-            Token::BasenameNoExt => f.write_str("{/.}")?,
-            Token::Text(ref string) => f.write_str(string)?,
+            Self::Placeholder => f.write_str("{}")?,
+            Self::Basename => f.write_str("{/}")?,
+            Self::Parent => f.write_str("{//}")?,
+            Self::NoExt => f.write_str("{.}")?,
+            Self::BasenameNoExt => f.write_str("{/.}")?,
+            Self::Text(ref string) => f.write_str(string)?,
         }
         Ok(())
     }
@@ -52,7 +52,7 @@ static PLACEHOLDERS: OnceLock<AhoCorasick> = OnceLock::new();
 
 impl FormatTemplate {
     pub fn has_tokens(&self) -> bool {
-        matches!(self, FormatTemplate::Tokens(_))
+        matches!(self, Self::Tokens(_))
     }
 
     pub fn parse(fmt: &str) -> Self {
@@ -96,14 +96,14 @@ impl FormatTemplate {
         }
         if tokens.is_empty() {
             // No placeholders were found, so just return the text
-            return FormatTemplate::Text(buf);
+            return Self::Text(buf);
         }
         // Add final text segment
         if !buf.is_empty() {
             tokens.push(Token::Text(buf));
         }
         debug_assert!(!tokens.is_empty());
-        FormatTemplate::Tokens(tokens)
+        Self::Tokens(tokens)
     }
 
     /// Generate a result string from this template. If path_separator is Some, then it will replace
@@ -156,30 +156,6 @@ impl FormatTemplate {
 
         while let Some(comp) = components.next() {
             match comp {
-                // Absolute paths on Windows are tricky.  A Prefix component is usually a drive
-                // letter or UNC path, and is usually followed by RootDir. There are also
-                // "verbatim" prefixes beginning with "\\?\" that skip normalization. We choose to
-                // ignore verbatim path prefixes here because they're very rare, might be
-                // impossible to reach here, and there's no good way to deal with them. If users
-                // are doing something advanced involving verbatim windows paths, they can do their
-                // own output filtering with a tool like sed.
-                Component::Prefix(prefix) => {
-                    if let Prefix::UNC(server, share) = prefix.kind() {
-                        // Prefix::UNC is a parsed version of '\\server\share'
-                        out.push(path_separator);
-                        out.push(path_separator);
-                        out.push(server);
-                        out.push(path_separator);
-                        out.push(share);
-                    } else {
-                        // All other Windows prefix types are rendered as-is. This results in e.g. "C:" for
-                        // drive letters. DeviceNS and Verbatim* prefixes won't have backslashes converted,
-                        // but they're not returned by directories fd can search anyway so we don't worry
-                        // about them.
-                        out.push(comp.as_os_str());
-                    }
-                }
-
                 // Root directory is always replaced with the custom separator.
                 Component::RootDir => out.push(path_separator),
 

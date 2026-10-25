@@ -73,14 +73,6 @@ mod path_tests {
     }
 
     #[test]
-    #[cfg(windows)]
-    fn dirname_root() {
-        assert_eq!(dirname(&PathBuf::from("C:")), OsString::from("C:"));
-        assert_eq!(dirname(&PathBuf::from("\\")), OsString::from("\\"));
-    }
-
-    #[test]
-    #[cfg(not(windows))]
     fn dirname_root() {
         assert_eq!(dirname(&PathBuf::from("/")), OsString::from("/"));
     }

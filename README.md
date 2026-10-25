@@ -272,8 +272,7 @@ To make exclude-patterns like these permanent, you can create a `.fdignore` file
 > `fd` also supports `.ignore` files that are used by other programs such as `rg` or `ag`.
 
 If you want `fd` to ignore these patterns globally, you can put them in `fd`'s global ignore file.
-This is usually located in `~/.config/fd/ignore` in macOS or Linux, and `%APPDATA%\fd\ignore` in
-Windows.
+This is usually located in `~/.config/fd/ignore`.
 
 You may wish to include `.git/` in your `fd/ignore` file so that `.git` directories, and their contents
 are not included in output if you use the `--hidden` option.
@@ -303,46 +302,143 @@ No such file or directory"* errors in the `rm` call.
 
 ### Command-line options
 
-This is the output of `fd -h`. To see the full set of command-line options, use `fd --help` which
-also includes a much more detailed help text.
+This is the output of `fd -h` (same as `fd --help`).
 
 ```
-Usage: fd [OPTIONS] [pattern [path]...]
+A program to find entries in your filesystem with regex and glob based matching. By default, fd respects gitignore rules, ignores hidden directories, and is case insensitive.
+
+Usage: fd [OPTIONS] [pattern] [path...]
 
 Arguments:
-  [pattern]  the search pattern (a regular expression, unless '--glob' is used; optional)
-  [path]...  the root directories for the filesystem search (optional)
+  [pattern]
+          the search pattern (a regular expression, unless '--glob' is used; optional). If your pattern starts with a dash (-), make sure to pass '--' first, or it will be considered as a flag (fd -- '-foo').
+  [path...]
+          the root directories for the filesystem search (optional). If omitted, search the current working directory.
 
 Options:
-  -H, --hidden                     Search hidden files and directories
-  -I, --no-ignore                  Do not respect .(git|fd)ignore files
-  -s, --case-sensitive             Case-sensitive search (default: smart case)
-  -i, --ignore-case                Case-insensitive search (default: smart case)
-  -g, --glob                       Glob-based search (default: regular expression)
-  -a, --absolute-path              Show absolute instead of relative paths
-  -l, --list-details               Use a long listing format with file metadata
-  -L, --follow                     Follow symbolic links
-  -p, --full-path                  Search full abs. path (default: filename only)
-  -d, --max-depth <depth>          Set maximum search depth (default: none)
-  -E, --exclude <glob>             Exclude entries that match the given glob pattern
-  -t, --type <filetype>            Filter by type: file (f), directory (d/dir), symlink (l),
-                                   executable (x), empty (e), socket (s), pipe (p), char-device
-                                   (c), block-device (b)
-  -e, --extension <ext>            Filter by extension
-  -S, --size <size>                Limit results based on the size of files
-      --changed-within <date|dur>  Filter by file modification time (newer than)
-      --changed-before <date|dur>  Filter by file modification time (older than)
-  -o, --owner <user:group>         Filter by owning user and/or group
-      --format <fmt>               Print results according to template
-  -x, --exec <cmd>...              Execute a command for each search result
-  -X, --exec-batch <cmd>...        Execute a command with all search results at once
-  -c, --color <when>               When to use colors [default: auto] [possible values: auto,
-                                   always, never]
-      --hyperlink[=<when>]         Add hyperlinks to output paths [default: never] [possible
-                                   values: auto, always, never]
-      --ignore-contain <name>      Ignore directories containing the named entry
-  -h, --help                       Print help (see more with '--help')
-  -V, --version                    Print version
+  -H, --hidden
+          Search hidden files and directories. Files and directories are considered to be hidden if their name starts with a `.` sign (dot). Any files or directories that are ignored due to the rules described by --no-ignore are still ignored unless otherwise specified. The flag can be overridden with --no-hidden.
+  --no-hidden
+          Overrides --hidden.
+  -I, --no-ignore
+          Do not respect .(git|fd)ignore files. The flag can be overridden with --ignore.
+  --ignore
+          Overrides --no-ignore.
+  --no-ignore-vcs
+          Do not respect .gitignore files. The flag can be overridden with --ignore-vcs.
+  --ignore-vcs
+          Overrides --no-ignore-vcs.
+  --no-require-git
+          Do not require a git repository to respect gitignores. By default, fd will only respect global gitignore rules, .gitignore rules, and local exclude rules if fd detects that you are searching inside a git repository. This flag allows you to relax this restriction such that fd will respect all git related ignore rules regardless of whether you're searching in a git repository or not. This flag can be disabled with --require-git.
+  --require-git
+          Overrides --no-require-git.
+  --no-ignore-parent
+          Do not respect .(git|fd)ignore files in parent directories. The flag can be overridden with --ignore-parent.
+  --ignore-parent
+          Overrides --no-ignore-parent.
+  --no-global-ignore-file
+          Do not respect the global ignore file.
+  -u, --unrestricted
+          Perform an unrestricted search, including ignored and hidden files. This is an alias for '--no-ignore --hidden'. [repeatable]
+  -s, --case-sensitive
+          Perform a case-sensitive search. By default, fd uses case-insensitive searches, unless the pattern contains an uppercase character (smart case).
+  -i, --ignore-case
+          Perform a case-insensitive search. By default, fd uses case-insensitive searches, unless the pattern contains an uppercase character (smart case).
+  -g, --glob
+          Perform a glob-based search instead of a regular expression search.
+  --regex
+          Perform a regular-expression based search (default). This can be used to override --glob.
+  -F, --fixed-strings
+          Treat the pattern as a literal string instead of a regular expression. Note that this also performs substring comparison. If you want to match on an exact filename, consider using '--glob' or '--exact' instead. [aliases: literal]
+  --exact
+          Perform an exact match. This is equivalent to '--fixed-strings' but requires the pattern to match the entire filename (or path if '--full-path' is used), rather than a substring. Special regex characters in the pattern are treated as literal characters.
+  --and <pattern>...
+          Add additional required search patterns, all of which must be matched. Multiple additional patterns can be specified. The patterns are regular expressions, unless '--glob' or '--fixed-strings' is used. [value: <pattern>, required value, repeatable]
+  -a, --absolute-path
+          Shows the full path starting from the root as opposed to relative paths. The flag can be overridden with --relative-path.
+  --relative-path
+          Overrides --absolute-path.
+  -l, --list-details
+          Use a detailed listing format like 'ls -l'. This is basically an alias for '--exec-batch ls -l' with some additional 'ls' options. This can be used to see more metadata, to show symlink targets and to achieve a deterministic sort order.
+  -L, --follow
+          By default, fd does not descend into symlinked directories. Using this flag, symbolic links are also traversed. Flag can be overridden with --no-follow. [aliases: dereference]
+  --no-follow
+          Overrides --follow.
+  -p, --full-path
+          By default, the search pattern is only matched against the filename (or directory name). Using this flag, the pattern is matched against the full (absolute) path. Example: fd --glob -p '**/.git/config'
+  -0, --print0
+          Separate search results by the null character (instead of newlines). Useful for piping results to 'xargs'.
+  -d, --max-depth <depth>
+          Limit the directory traversal to a given depth. By default, there is no limit on the search depth. [value: <depth>, required value, aliases: maxdepth]
+  --min-depth <depth>
+          Only show search results starting at the given depth. See also: '--max-depth' and '--exact-depth' [value: <depth>, required value, aliases: mindepth]
+  --exact-depth <depth>
+          Only show search results at the exact given depth. This is an alias for '--min-depth <depth> --max-depth <depth>'. [value: <depth>, required value]
+  -E, --exclude <glob>...
+          Exclude files/directories that match the given glob pattern. This overrides any other ignore logic. Multiple exclude patterns can be specified. Examples: --exclude '*.pyc' --exclude node_modules [value: <glob>, required value, repeatable]
+  --prune
+          Do not traverse into directories that match the search criteria. If you want to exclude specific directories, use the '--exclude=…' option.
+  -t, --type <filetype>...
+          Filter by type: file (f), directory (d/dir), symlink (l), executable (x), empty (e), socket (s), pipe (p), char-device (c), block-device (b). This option can be specified more than once to include multiple file types. [value: <filetype>, required value, repeatable]
+  -e, --extension <ext>...
+          Filter by extension. By default, this matches all entry types (including directories whose names end with the extension). Use `--type` to restrict the search to specific types. Multiple extensions can be specified. If you want to search for files without extension, you can use the regex '^[^.]+$' as a normal search pattern. [value: <ext>, required value, repeatable]
+  -S, --size <size>...
+          Limit results based on the size of files using the format <+-><NUM><UNIT>. '+': file size must be greater than or equal to this '-': file size must be less than or equal to this. If neither '+' nor '-' is specified, file size must be exactly equal to this. 'NUM': The numeric size (e.g. 500) 'UNIT': The units for NUM. Allowed unit values: 'b': bytes 'k': kilobytes (base ten, 10^3 = 1000 bytes) 'm': megabytes 'g': gigabytes 't': terabytes 'ki': kibibytes (base two, 2^10 = 1024 bytes) 'mi': mebibytes 'gi': gibibytes 'ti': tebibytes [value: <size>, required value, repeatable]
+  --changed-within <date|dur>
+          Filter by file modification time (newer than). The argument can be provided as a specific point in time (YYYY-MM-DD HH:MM:SS or @timestamp) or as a duration (10h, 1d, 35min). If the time is not specified, it defaults to 00:00:00. '--change-newer-than', '--newer', or '--changed-after' can be used as aliases. Examples: --changed-within 2weeks --change-newer-than '2018-10-27 10:00:00' --newer 2018-10-27 --changed-after 1day [value: <date|dur>, required value, aliases: change-newer-than, newer, changed-after]
+  --changed-before <date|dur>
+          Filter by file modification time (older than). The argument can be provided as a specific point in time (YYYY-MM-DD HH:MM:SS or @timestamp) or as a duration (10h, 1d, 35min). '--change-older-than' or '--older' can be used as aliases. Examples: --changed-before '2018-10-27 10:00:00' --change-older-than 2weeks --older 2018-10-27 [value: <date|dur>, required value, aliases: change-older-than, older]
+  -o, --owner <user:group>
+          Filter by owning user and/or group. Format: [(user|uid)][:(group|gid)]. Either side is optional. Precede either side with a '!' to exclude files instead. Examples: --owner john --owner :students --owner '!john:students' [value: <user:group>, required value]
+  --format <fmt>
+          Print results according to template with placeholders: '{}': path, '{/}': basename, '{//}': parent directory, '{.}': path without file extension, '{/.}': basename without file extension. [value: <fmt>, required value]
+  -x, --exec <cmd>...
+          Execute a command for each search result in parallel (use --threads=1 for sequential command execution). There is no guarantee of the order commands are executed in. All positional arguments following --exec are considered to be arguments to the command - not to fd. Use ';' to terminate the command template if you need to continue passing fd arguments afterwards. Placeholders: '{}': path, '{/}': basename, '{//}': parent directory, '{.}': path without file extension, '{/.}': basename without file extension, '{{': literal '{', '}}': literal '}'. If no placeholder is present, an implicit "{}" at the end is assumed. Examples: fd -e zip -x unzip; fd -e h -e cpp -x clang-format -i; fd . src -x echo; fd -e jpg -x convert {} {.}.png [value: <cmd>, required value, repeatable]
+  -X, --exec-batch <cmd>...
+          Execute the given command once, with all search results as arguments. The order of the arguments is non-deterministic. Placeholders: '{}': path, '{/}': basename, '{//}': parent directory, '{.}': path without file extension, '{/.}': basename without file extension, '{{': literal '{', '}}': literal '}'. If no placeholder is present, an implicit "{}" at the end is assumed. Examples: fd -g 'test_*.py' -X vim; fd -e rs -X wc -l [value: <cmd>, required value, repeatable]
+  --batch-size <size>
+          Maximum number of arguments to pass to the command given with -X. If the number of results is greater than the given size, the command given with -X is run again with remaining arguments. A batch size of zero means there is no limit (default), but note that batching might still happen due to OS restrictions on the maximum length of command lines. [value: <size>, default: 0, required value]
+  --ignore-file <path>...
+          Add a custom ignore-file in '.gitignore' format. These files have a low precedence. [value: <path>, required value, repeatable]
+  -c, --color <when>
+          Declare when to use color for the pattern match output [default: auto] [possible values: auto, always, never]. Environment: NO_COLOR is respected (non-empty disables color in auto mode); LS_COLORS defines file styling. [value: <when>, default: auto, required value]
+  --hyperlink[=<when>]
+          Add a terminal hyperlink to a file:// url for each path in the output. If no argument is given, auto mode is used. This doesn't do anything for --exec and --exec-batch. [default: never] [possible values: auto, always, never] [value: <when>, default: never, optional value (use =) [bare flag: auto], aliases: hyper]
+  --ignore-contain <name>...
+          Ignore directories containing the named entry. [value: <name>, required value, repeatable]
+  -j, --threads <num>
+          Set number of threads to use for searching & executing (default: number of available CPU cores). [value: <num>, required value]
+  --max-buffer-time
+          Milliseconds to buffer before streaming search results to console. [required value]
+  --max-results <count>
+          Limit the number of search results to 'count' and quit immediately. [value: <count>, required value]
+  -1, --max-one-result
+          Limit the search to a single result and quit immediately. This is an alias for '--max-results=1'.
+  -q, --quiet
+          When the flag is present, the program does not print anything and will return with an exit code of 0 if there is at least one match. Otherwise, the exit code will be 1. '--has-results' can be used as an alias. [aliases: has-results]
+  --show-errors
+          Enable the display of filesystem errors for situations such as insufficient permissions or dead symlinks.
+  -C, --base-directory <path>
+          Change the current working directory of fd to the provided path. This means that search results will be shown with respect to the given base path. Note that relative paths which are passed to fd via the positional <path> argument or the '--search-path' option will also be resolved relative to this directory. [value: <path>, required value]
+  --path-separator <separator>
+          Set the path separator to use when printing file paths. The default is '/'. [value: <separator>, required value]
+  --search-path <search-path>...
+          Provide paths to search as an alternative to the positional <path> argument. Changes the usage to `fd [OPTIONS] --search-path <path> --search-path <path2> [<pattern>]` [value: <search-path>, required value, repeatable]
+  --strip-cwd-prefix[=<when>]
+          By default, relative paths are prefixed with './' when -x/--exec, -X/--exec-batch, or -0/--print0 are given, to reduce the risk of a path starting with '-' being treated as a command line option. Use this flag to change this behavior. If this flag is used without a value, it is equivalent to passing "always". [possible values: auto, always, never] [value: <when>, optional value (use =) [bare flag: always]]
+  --one-file-system
+          By default, fd will traverse the file system tree as far as other options dictate. With this flag, fd ensures that it does not descend into a different file system than the one it started in. Comparable to the -mount or -xdev filters of find(1). [aliases: mount, xdev]
+  -h, --help
+          Print help.
+  -V, --version
+          Print version.
+
+Examples:
+  fd . src -x echo
+  fd -e rs -X wc -l
+  fd --glob '**/.git/config'
+
+Bugs can be reported on GitHub: https://github.com/sharkdp/fd/issues
 ```
 
 Note that options can be given after the pattern and/or path as well.
@@ -411,7 +507,7 @@ full path (similar to the `-path` option of `find`) you need to use the `--full-
 variable [`LS_COLORS`](https://linux.die.net/man/5/dir_colors) has to be set. Typically, the value
 of this variable is set by the `dircolors` command which provides a convenient configuration format
 to define colors for different file formats.
-On most distributions, `LS_COLORS` should be set already. If you are on Windows or if you are looking
+On most distributions, `LS_COLORS` should be set already. If you are looking
 for alternative, more complete (or more colorful) variants, see [here](https://github.com/sharkdp/vivid),
 [here](https://github.com/seebi/dircolors-solarized) or
 [here](https://github.com/trapd00r/LS_COLORS).
@@ -655,25 +751,6 @@ brew install fd
 port install fd
 ```
 
-### On Windows
-
-You can download pre-built binaries from the [release page](https://github.com/sharkdp/fd/releases).
-
-Alternatively, you can install `fd` via [Scoop](http://scoop.sh):
-```
-scoop install fd
-```
-
-Or via [Chocolatey](https://chocolatey.org):
-```
-choco install fd
-```
-
-Or via [Winget](https://learn.microsoft.com/en-us/windows/package-manager/):
-```
-winget install sharkdp.fd
-```
-
 ### On GuixOS
 
 You can install [the fd package](https://guix.gnu.org/en/packages/fd-8.1.1/) from the official repo:
@@ -729,7 +806,7 @@ Note that rust version *1.90.0* or later is required.
 
 ### From binaries
 
-The [release page](https://github.com/sharkdp/fd/releases) includes precompiled binaries for Linux, macOS and Windows. Statically-linked binaries are also available: look for archives with `musl` in the file name.
+The [release page](https://github.com/sharkdp/fd/releases) includes precompiled binaries for Linux and macOS. Statically-linked binaries are also available: look for archives with `musl` in the file name.
 
 ## Development
 ```bash

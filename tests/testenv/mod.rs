@@ -1,10 +1,7 @@
 use std::env;
 use std::fs;
 use std::io::{self, Write};
-#[cfg(unix)]
 use std::os::unix;
-#[cfg(windows)]
-use std::os::windows;
 use std::path::{Path, PathBuf};
 use std::process;
 
@@ -48,11 +45,6 @@ fn create_working_directory(
 
         #[cfg(unix)]
         unix::fs::symlink(root.join("one/two"), root.join("symlink"))?;
-
-        // Note: creating symlinks on Windows requires the `SeCreateSymbolicLinkPrivilege` which
-        // is by default only granted for administrators.
-        #[cfg(windows)]
-        windows::fs::symlink_dir(root.join("one/two"), root.join("symlink"))?;
 
         fs::File::create(root.join(".fdignore"))?.write_all(b"fdignored.foo")?;
 
@@ -188,12 +180,25 @@ impl TestEnv {
                 .tempdir()?;
             let broken_symlink_target = temp_target_dir.path().join("broken_symlink_target");
             fs::File::create(&broken_symlink_target)?;
-            #[cfg(unix)]
             unix::fs::symlink(&broken_symlink_target, &broken_symlink_link)?;
-            #[cfg(windows)]
-            windows::fs::symlink_file(&broken_symlink_target, &broken_symlink_link)?;
         }
         Ok(broken_symlink_link)
+    }
+
+    pub fn create_symlink<P: AsRef<Path>>(
+        &mut self,
+        target: P,
+        link_path: P,
+    ) -> io::Result<PathBuf> {
+        let root = self.test_root();
+        let target_path = root.join(target);
+        let link_path = root.join(link_path);
+        #[cfg(unix)]
+        unix::fs::symlink(&target_path, &link_path)?;
+        #[cfg(windows)]
+        windows::fs::symlink_file(&target_path, &link_path)?;
+
+        Ok(link_path)
     }
 
     /// Get the root directory for the tests.
@@ -202,7 +207,6 @@ impl TestEnv {
     }
 
     /// Get the path of the fd executable.
-    #[cfg_attr(windows, allow(unused))]
     pub fn test_exe(&self) -> &PathBuf {
         &self.fd_exe
     }

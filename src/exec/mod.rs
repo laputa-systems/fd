@@ -33,13 +33,13 @@ pub struct CommandSet {
 }
 
 impl CommandSet {
-    pub fn new<I, T, S>(input: I) -> Result<CommandSet>
+    pub fn new<I, T, S>(input: I) -> Result<Self>
     where
         I: IntoIterator<Item = T>,
         T: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
-        Ok(CommandSet {
+        Ok(Self {
             mode: ExecutionMode::OneByOne,
             commands: input
                 .into_iter()
@@ -48,13 +48,13 @@ impl CommandSet {
         })
     }
 
-    pub fn new_batch<I, T, S>(input: I) -> Result<CommandSet>
+    pub fn new_batch<I, T, S>(input: I) -> Result<Self>
     where
         I: IntoIterator<Item = T>,
         T: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
-        Ok(CommandSet {
+        Ok(Self {
             mode: ExecutionMode::Batch,
             commands: input
                 .into_iter()
@@ -217,7 +217,7 @@ struct CommandTemplate {
 }
 
 impl CommandTemplate {
-    fn new<I, S>(input: I, mode: ExecutionMode) -> Result<CommandTemplate>
+    fn new<I, S>(input: I, mode: ExecutionMode) -> Result<Self>
     where
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
@@ -236,8 +236,7 @@ impl CommandTemplate {
         // We need to check that we have at least one argument, because if not
         // it will try to execute each file and directory it finds.
         //
-        // Sadly, clap can't currently handle this for us, see
-        // https://github.com/clap-rs/clap/issues/3542
+        // The CLI parser passes through empty invocations, so validate here.
         if args.is_empty() {
             bail!("No executable provided for --exec or --exec-batch");
         }
@@ -252,7 +251,7 @@ impl CommandTemplate {
             args.push(FormatTemplate::Tokens(vec![Token::Placeholder]));
         }
 
-        Ok(CommandTemplate { args })
+        Ok(Self { args })
     }
 
     fn number_of_tokens(&self) -> usize {
@@ -454,33 +453,5 @@ mod tests {
         check!("foo", "foo");
         check!("foo/bar", "foo#bar");
         check!("/foo/bar/baz", "#foo#bar#baz");
-    }
-
-    #[cfg(windows)]
-    #[test]
-    fn generate_custom_path_separator_windows() {
-        let arg = FormatTemplate::Tokens(vec![Token::Placeholder]);
-        macro_rules! check {
-            ($input:expr, $expected:expr) => {
-                assert_eq!(arg.generate($input, Some("#")), OsString::from($expected));
-            };
-        }
-
-        // path starting with a drive letter
-        check!(r"C:\foo\bar", "C:#foo#bar");
-        // UNC path
-        check!(r"\\server\share\path", "##server#share#path");
-        // Drive Relative path - no separator after the colon omits the RootDir path component.
-        // This is uncommon, but valid
-        check!(r"C:foo\bar", "C:foo#bar");
-
-        // forward slashes should get normalized and interpreted as separators
-        check!("C:/foo/bar", "C:#foo#bar");
-        check!("C:foo/bar", "C:foo#bar");
-
-        // Rust does not interpret "//server/share" as a UNC path, but rather as a normal
-        // absolute path that begins with RootDir, and the two slashes get combined together as
-        // a single path separator during normalization.
-        //check!("//server/share/path", "##server#share#path");
     }
 }

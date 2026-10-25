@@ -5,8 +5,8 @@ use std::path::{Path, PathBuf};
 pub(crate) struct PathUrl(PathBuf);
 
 impl PathUrl {
-    pub(crate) fn new(path: &Path) -> Option<PathUrl> {
-        Some(PathUrl(absolute_path(path).ok()?))
+    pub(crate) fn new(path: &Path) -> Option<Self> {
+        Some(Self(absolute_path(path).ok()?))
     }
 }
 
@@ -23,8 +23,8 @@ impl fmt::Display for PathUrl {
 
 fn encode(f: &mut Formatter, byte: u8) -> fmt::Result {
     // NOTE:
-    // Most terminals can handle non-ascii unicode characters in a file url fine. But on some OSes (notably
-    // windows), the encoded bytes of the path may not be valid UTF-8. Since we don't know if a
+    // Most terminals can handle non-ascii unicode characters in a file url fine. But the
+    // encoded bytes of the path may not be valid UTF-8. Since we don't know if a
     // byte >= 128 is part of a valid UTF-8 encoding or not, we just percent encode any non-ascii
     // byte.
     // Percent encoding these bytes is probably safer anyway.
@@ -32,8 +32,6 @@ fn encode(f: &mut Formatter, byte: u8) -> fmt::Result {
         b'0'..=b'9' | b'A'..=b'Z' | b'a'..=b'z' | b'/' | b':' | b'-' | b'.' | b'_' | b'~' => {
             f.write_char(byte.into())
         }
-        #[cfg(windows)]
-        b'\\' => f.write_char('/'),
         _ => {
             write!(f, "%{byte:02X}")
         }
