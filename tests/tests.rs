@@ -342,7 +342,7 @@ fn test_multi_file_with_missing() {
 
     te.assert_error(
         &["a.foo", "real", "fake"],
-        "[fd error]: Search path \"fake\" is not a directory.",
+        "[fd error]: Search path 'fake' is not a directory.",
     );
 
     te.assert_output(
@@ -359,14 +359,14 @@ fn test_multi_file_with_missing() {
 
     te.assert_error(
         &["", "real", "fake1", "fake2"],
-        "[fd error]: Search path \"fake1\" is not a directory.
-        [fd error]: Search path \"fake2\" is not a directory.",
+        "[fd error]: Search path 'fake1' is not a directory.
+        [fd error]: Search path 'fake2' is not a directory.",
     );
 
     te.assert_failure_with_error(
         &["", "fake1", "fake2"],
-        "[fd error]: Search path \"fake1\" is not a directory.
-        [fd error]: Search path \"fake2\" is not a directory.
+        "[fd error]: Search path 'fake1' is not a directory.
+        [fd error]: Search path 'fake2' is not a directory.
         [fd error]: No valid search paths given.",
     );
 }
@@ -2134,40 +2134,22 @@ fn test_exec_batch() {
 
         te.assert_failure_with_error(
             &["foo", "--exec-batch", "echo", "{}", "{}"],
-            "error: Only one placeholder allowed for batch commands\n\
-            \n\
-            Usage: fd [OPTIONS] [pattern] [path]...\n\
-            \n\
-            For more information, try '--help'.\n\
-            ",
+            "error: invalid value '' for '--exec-batch': Only one placeholder allowed for batch commands",
         );
 
         te.assert_failure_with_error(
             &["foo", "--exec-batch", "echo", "{/}", ";", "-x", "echo"],
-            "error: the argument '--exec-batch <cmd>...' cannot be used with '--exec <cmd>...'\n\
-            \n\
-            Usage: fd --exec-batch <cmd>... <pattern> [path]...\n\
-            \n\
-            For more information, try '--help'.\n\
-            ",
+            "error: the argument '--exec' cannot be used with '--exec-batch'",
         );
 
         te.assert_failure_with_error(
             &["foo", "--exec-batch"],
-            "error: a value is required for '--exec-batch <cmd>...' but none was supplied\n\
-            \n\
-            For more information, try '--help'.\n\
-            ",
+            "error: a value is required for '--exec-batch' but none was supplied",
         );
 
         te.assert_failure_with_error(
             &["foo", "--exec-batch", "echo {}"],
-            "error: First argument of --exec-batch must be a fixed executable, not a placeholder\n\
-            \n\
-            Usage: fd [OPTIONS] [pattern] [path]...\n\
-            \n\
-            For more information, try '--help'.\n\
-            ",
+            "error: invalid value '' for '--exec-batch': First argument of --exec-batch must be a fixed executable, not a placeholder",
         );
 
         te.assert_failure_with_error(&["a.foo", "--exec-batch", "bash", "-c", "exit 1"], "");

@@ -25,6 +25,14 @@ impl SanitizeErr for &str {
     }
 }
 
+impl SanitizeErr for String {
+    type Sanitized = Self;
+
+    fn sanitize(self) -> Self {
+        self
+    }
+}
+
 impl SanitizeErr for io::Error {
     type Sanitized = SanitizedError<io::Error>;
 

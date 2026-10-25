@@ -236,8 +236,7 @@ impl CommandTemplate {
         // We need to check that we have at least one argument, because if not
         // it will try to execute each file and directory it finds.
         //
-        // Sadly, clap can't currently handle this for us, see
-        // https://github.com/clap-rs/clap/issues/3542
+        // The CLI parser passes through empty invocations, so validate here.
         if args.is_empty() {
             bail!("No executable provided for --exec or --exec-batch");
         }
