@@ -525,7 +525,7 @@ The workflow uploads a pre-release tagged `release-<full git sha>`. Each asset i
 
 Linux binaries use `--profile dist` and static musl flags. The workflow rejects an ELF that has a dynamic interpreter or a `NEEDED` entry. The zip has no man page and no completions.
 
-`scripts/create-archive.sh`, `scripts/create-deb.sh`, `Cross.toml`, and `package.metadata.binstall` in `Cargo.toml` still describe the upstream release. This workflow does not run them. See `doc/release-checklist.md`.
+`scripts/create-archive.sh`, `scripts/create-deb.sh`, and `Cross.toml` still describe the upstream release. This workflow does not run them. See `doc/release-checklist.md`.
 
 ### Completions
 
