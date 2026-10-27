@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Please check out the [troubleshooting section](https://github.com/sharkdp/fd#troubleshooting) first.
+        Please check out the [troubleshooting section](https://github.com/laputa-systems/fd#troubleshooting) first.
   - type: checkboxes
     attributes:
       label: Checks

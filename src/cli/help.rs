@@ -127,7 +127,7 @@ pub fn render_help(spec: &CommandSpec) -> String {
             out.push_str(&format!("  {ex}\n"));
         }
     }
-    out.push_str("\nBugs can be reported on GitHub: https://github.com/sharkdp/fd/issues\n");
+    out.push_str("\nBugs can be reported on GitHub: https://github.com/laputa-systems/fd/issues\n");
     out
 }
 

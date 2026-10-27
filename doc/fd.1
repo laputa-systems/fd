@@ -314,7 +314,7 @@ Always output hyperlink escapes, regardless of color settings.
 .RE
 .TP
 .BI "\-j, \-\-threads " num
-Set number of threads to use for searching & executing (default: number of available CPU cores).
+Set number of threads to use for searching and executing (default: number of available CPU cores, at most 64).
 .TP
 .BI "\-S, \-\-size " size
 Limit results based on the size of files using the format
@@ -582,6 +582,6 @@ you can use
 `alias fd="/usr/bin/fd --no-ignore-vcs"`
 in your .bashrc to create an alias for fd that doesn't ignore git files by default.
 .SH BUGS
-Bugs can be reported on GitHub: https://github.com/sharkdp/fd/issues
+Bugs can be reported on GitHub: https://github.com/laputa-systems/fd/issues
 .SH SEE ALSO
 .BR find (1)

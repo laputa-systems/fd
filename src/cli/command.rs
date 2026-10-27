@@ -690,7 +690,7 @@ pub const OPT_THREADS: OptionSpec = OptionSpec {
     value_terminator: None,
     default: None,
     env: None,
-    help: "Set number of threads to use for searching & executing (default: number of available CPU cores).",
+    help: "Set number of threads to use for searching and executing. The default is the number of available CPU cores, at most 64.",
 };
 
 pub const OPT_MAX_BUFFER_TIME: OptionSpec = OptionSpec {

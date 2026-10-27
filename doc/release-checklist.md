@@ -1,69 +1,27 @@
-# Release checklist
+# Release
 
-This file can be used as-is, or copied into the GitHub PR description which includes
-necessary changes for the upcoming release.
+How to publish binaries from this checkout. The workflow is `.github/workflows/release.yml`.
 
-## Version bump
+## Ship
 
-This section can be done by running `scripts/version-bump.sh` with the new version
-as an argument.
+1. Run `cargo test --locked` on the commit you want to ship.
+2. Dispatch the `release` workflow on that commit. Pushing a `vX.Y.Z` tag does not start it.
+3. The workflow builds three targets with `cargo build --locked --profile dist --bin fd`:
+   - `aarch64-apple-darwin` on `macos-26`
+   - `x86_64-unknown-linux-musl` on `ubuntu-latest`
+   - `aarch64-unknown-linux-musl` on `ubuntu-24.04-arm`
+4. Linux builds set the linker to `musl-gcc` and pass `-C target-feature=+crt-static -C link-arg=-fuse-ld=mold -C link-arg=-static -C link-arg=-Wl,--no-dynamic-linker`.
+5. The release job requires one x86_64 ELF and one aarch64 ELF. It fails if either has an `INTERP` program header or a `NEEDED` entry. Non-ELF files are skipped.
+6. It zips each binary and publishes a pre-release named `release-<github.sha>` on this repository, pointed at that commit.
 
-- [ ] Create a new branch for the required changes for this release.
-- [ ] Update version in `Cargo.toml`. Run `cargo build` to update `Cargo.lock`.
-      Make sure to `git add` the `Cargo.lock` changes as well.
-- [ ] Find the current min. supported Rust version by running
-      `grep rust-version Cargo.toml`.
-- [ ] Update the `fd` version and the min. supported Rust version in `README.md`.
-- [ ] Update `CHANGELOG.md`. Change the heading of the *"Upcoming release"* section
-      to the version of this release.
+There is no `.deb` and no source tarball in that release. Each zip contains one binary.
 
-## Pre-release checks and updates
+## Version string
 
-- [ ] Install the latest version (`cargo install --locked -f --path .`) and make
-      sure that it is available on the `PATH` (`fd --version` should show the
-      new version).
-- [ ] Review `-h`, `--help`, and the `man` page.
-- [ ] Run `fd -h` and copy the output to the *"Command-line options"* section in
-      the README. This can be done by running `gawk -i inplace -f scripts/update-help.awk README.md`.
-- [ ] Push all changes and wait for CI to succeed (before continuing with the
-      next section).
-- [ ] Optional: manually test the new features and command-line options described
-      in the `CHANGELOG.md`.
-- [ ] Run `cargo publish --dry-run` to make sure that it will succeed later
-      (after creating the GitHub release).
+`--version` prints the `version` field from `Cargo.toml` and the git SHA from `build.rs`. The release tag does not include the Cargo version. Change `version` in `Cargo.toml` only when the printed version should change, and rename the "Upcoming release" heading in `CHANGELOG.md` to match. The workflow does not do this.
 
-## Release
+`scripts/version-bump.sh` creates a git branch and rewrites files. Do not run it as part of this release.
 
-- [ ] Merge your release branch (should be a fast-forward merge).
-- [ ] Create a tag and push it: `git tag vX.Y.Z; git push origin tag vX.Y.Z`.
-      This will trigger the deployment via GitHub Actions.
-      REMINDER: If your `origin` is a fork, don't forget to push to e.g. `upstream`
-      instead.
-- [ ] Go to https://github.com/sharkdp/fd/releases/new to create the new
-      release. Select the new tag and also use it as the release title. For the
-      release notes, copy the corresponding section from `CHANGELOG.md` and
-      possibly add additional remarks for package maintainers.
-      Publish the release.
-- [ ] Check if the binary deployment works (archives and Debian packages should
-      appear when the CI run *for the Git tag* has finished).
-- [ ] Publish to crates.io by running `cargo publish` in a *clean* repository.
-      One way to do this is to clone a fresh copy.
+## Not this release
 
-## Post-release
-
-- [ ] Prepare a new *"Upcoming release"* section at the top of `CHANGELOG.md`.
-      Put this at the top:
-
-      # Upcoming release
-
-      ## Features
-
-
-      ## Bugfixes
-
-
-      ## Changes
-
-
-      ## Other
-
+`make archive`, `scripts/create-archive.sh`, `scripts/create-deb.sh`, and `Cross.toml` are the upstream packaging path. `make archive` fails because it runs `fd --gen-completions`. Do not ship this fork with them.

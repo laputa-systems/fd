@@ -1,18 +1,3 @@
-//! Build script that embeds a short git SHA for `--version`.
-//!
-//! Policy:
-//! - The SHA is emitted as the `FD_GIT_SHA` Cargo env var (`env!("FD_GIT_SHA")`).
-//! - It must be hexadecimal (lowercase), rejecting `unknown`/`dirty`.
-//! - A non-empty `FD_GIT_SHA_OVERRIDE` env var is honored for release archives
-//!   without a git checkout (e.g. crates.io tarballs). Documented here because
-//!   there is no `.git` in that case.
-//! - Reruns on git changes using `git rev-parse --git-dir` (`.git` is a file in
-//!   worktrees, so we resolve the real git dir instead of watching `.git`).
-//!
-//! No-git-checkout policy: if git is unavailable and no override is provided,
-//! the build fails with a clear message telling the packager to set
-//! `FD_GIT_SHA_OVERRIDE` to the archived commit SHA.
-
 use std::env;
 use std::path::PathBuf;
 use std::process::Command;
@@ -22,7 +7,6 @@ fn is_hex(s: &str) -> bool {
 }
 
 fn main() {
-    // Explicit override for release archives without `.git`.
     if let Ok(ov) = env::var("FD_GIT_SHA_OVERRIDE") {
         if !ov.trim().is_empty() {
             let sha = ov.trim().to_lowercase();
@@ -40,8 +24,6 @@ fn main() {
         }
     }
 
-    // Rerun on git changes. `git rev-parse --git-dir` handles worktrees where
-    // `.git` is a file pointing at the real git dir.
     let git_dir = Command::new("git")
         .args(["rev-parse", "--git-dir"])
         .output()
@@ -56,13 +38,10 @@ fn main() {
 
     if let Some(dir) = git_dir {
         let git_dir_path = PathBuf::from(dir);
-        // Watch HEAD and ref updates so the SHA refreshes on commit/checkout.
         println!(
             "cargo:rerun-if-changed={}/HEAD",
             git_dir_path.display()
         );
-        // `git rev-parse --git-dir` may be relative; cargo handles it relative to
-        // the package root, which is sufficient to trigger reruns.
         println!("cargo:rerun-if-env-changed=FD_GIT_SHA_OVERRIDE");
     } else {
         println!("cargo:rerun-if-env-changed=FD_GIT_SHA_OVERRIDE");

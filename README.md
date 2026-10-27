@@ -1,14 +1,13 @@
 # fd
 
-[![CICD](https://github.com/sharkdp/fd/actions/workflows/CICD.yml/badge.svg)](https://github.com/sharkdp/fd/actions/workflows/CICD.yml)
-[![Version info](https://img.shields.io/crates/v/fd-find.svg)](https://crates.io/crates/fd-find)
-[[中文](https://github.com/cha0ran/fd-zh)]
-[[한국어](https://github.com/spearkkk/fd-kor)]
-
 `fd` is a program to find entries in your filesystem.
 It is a simple, fast and user-friendly alternative to [`find`](https://www.gnu.org/software/findutils/).
 While it does not aim to support all of `find`'s powerful functionality, it provides sensible
 (opinionated) defaults for a majority of use cases.
+
+This tree is the [laputa-systems/fd](https://github.com/laputa-systems/fd) fork of [sharkdp/fd](https://github.com/sharkdp/fd).
+It does not support Windows. It parses arguments with lexopt. Linux release binaries are static musl builds. The macOS release binary is not static.
+Distro packages and `cargo install fd-find` install upstream, not this fork.
 
 [Installation](#installation) • [How to use](#how-to-use) • [Troubleshooting](#troubleshooting)
 
@@ -107,8 +106,8 @@ README.md
 The `-e` option can be used in combination with a search pattern:
 ``` bash
 > fd -e rs mod
-src/fshelper/mod.rs
-src/lscolors/mod.rs
+src/cli/mod.rs
+src/exec/mod.rs
 tests/testenv/mod.rs
 ```
 
@@ -302,146 +301,11 @@ No such file or directory"* errors in the `rm` call.
 
 ### Command-line options
 
-This is the output of `fd -h` (same as `fd --help`).
+`fd -h` and `fd --help` print the same text. Spellings and help strings are in `src/cli/command.rs`.
 
-```
-A program to find entries in your filesystem with regex and glob based matching. By default, fd respects gitignore rules, ignores hidden directories, and is case insensitive.
+The default thread count is the number of CPUs, capped at 64 (`default_num_threads` in `src/cli/fd.rs`).
 
-Usage: fd [OPTIONS] [pattern] [path...]
-
-Arguments:
-  [pattern]
-          the search pattern (a regular expression, unless '--glob' is used; optional). If your pattern starts with a dash (-), make sure to pass '--' first, or it will be considered as a flag (fd -- '-foo').
-  [path...]
-          the root directories for the filesystem search (optional). If omitted, search the current working directory.
-
-Options:
-  -H, --hidden
-          Search hidden files and directories. Files and directories are considered to be hidden if their name starts with a `.` sign (dot). Any files or directories that are ignored due to the rules described by --no-ignore are still ignored unless otherwise specified. The flag can be overridden with --no-hidden.
-  --no-hidden
-          Overrides --hidden.
-  -I, --no-ignore
-          Do not respect .(git|fd)ignore files. The flag can be overridden with --ignore.
-  --ignore
-          Overrides --no-ignore.
-  --no-ignore-vcs
-          Do not respect .gitignore files. The flag can be overridden with --ignore-vcs.
-  --ignore-vcs
-          Overrides --no-ignore-vcs.
-  --no-require-git
-          Do not require a git repository to respect gitignores. By default, fd will only respect global gitignore rules, .gitignore rules, and local exclude rules if fd detects that you are searching inside a git repository. This flag allows you to relax this restriction such that fd will respect all git related ignore rules regardless of whether you're searching in a git repository or not. This flag can be disabled with --require-git.
-  --require-git
-          Overrides --no-require-git.
-  --no-ignore-parent
-          Do not respect .(git|fd)ignore files in parent directories. The flag can be overridden with --ignore-parent.
-  --ignore-parent
-          Overrides --no-ignore-parent.
-  --no-global-ignore-file
-          Do not respect the global ignore file.
-  -u, --unrestricted
-          Perform an unrestricted search, including ignored and hidden files. This is an alias for '--no-ignore --hidden'. [repeatable]
-  -s, --case-sensitive
-          Perform a case-sensitive search. By default, fd uses case-insensitive searches, unless the pattern contains an uppercase character (smart case).
-  -i, --ignore-case
-          Perform a case-insensitive search. By default, fd uses case-insensitive searches, unless the pattern contains an uppercase character (smart case).
-  -g, --glob
-          Perform a glob-based search instead of a regular expression search.
-  --regex
-          Perform a regular-expression based search (default). This can be used to override --glob.
-  -F, --fixed-strings
-          Treat the pattern as a literal string instead of a regular expression. Note that this also performs substring comparison. If you want to match on an exact filename, consider using '--glob' or '--exact' instead. [aliases: literal]
-  --exact
-          Perform an exact match. This is equivalent to '--fixed-strings' but requires the pattern to match the entire filename (or path if '--full-path' is used), rather than a substring. Special regex characters in the pattern are treated as literal characters.
-  --and <pattern>...
-          Add additional required search patterns, all of which must be matched. Multiple additional patterns can be specified. The patterns are regular expressions, unless '--glob' or '--fixed-strings' is used. [value: <pattern>, required value, repeatable]
-  -a, --absolute-path
-          Shows the full path starting from the root as opposed to relative paths. The flag can be overridden with --relative-path.
-  --relative-path
-          Overrides --absolute-path.
-  -l, --list-details
-          Use a detailed listing format like 'ls -l'. This is basically an alias for '--exec-batch ls -l' with some additional 'ls' options. This can be used to see more metadata, to show symlink targets and to achieve a deterministic sort order.
-  -L, --follow
-          By default, fd does not descend into symlinked directories. Using this flag, symbolic links are also traversed. Flag can be overridden with --no-follow. [aliases: dereference]
-  --no-follow
-          Overrides --follow.
-  -p, --full-path
-          By default, the search pattern is only matched against the filename (or directory name). Using this flag, the pattern is matched against the full (absolute) path. Example: fd --glob -p '**/.git/config'
-  -0, --print0
-          Separate search results by the null character (instead of newlines). Useful for piping results to 'xargs'.
-  -d, --max-depth <depth>
-          Limit the directory traversal to a given depth. By default, there is no limit on the search depth. [value: <depth>, required value, aliases: maxdepth]
-  --min-depth <depth>
-          Only show search results starting at the given depth. See also: '--max-depth' and '--exact-depth' [value: <depth>, required value, aliases: mindepth]
-  --exact-depth <depth>
-          Only show search results at the exact given depth. This is an alias for '--min-depth <depth> --max-depth <depth>'. [value: <depth>, required value]
-  -E, --exclude <glob>...
-          Exclude files/directories that match the given glob pattern. This overrides any other ignore logic. Multiple exclude patterns can be specified. Examples: --exclude '*.pyc' --exclude node_modules [value: <glob>, required value, repeatable]
-  --prune
-          Do not traverse into directories that match the search criteria. If you want to exclude specific directories, use the '--exclude=…' option.
-  -t, --type <filetype>...
-          Filter by type: file (f), directory (d/dir), symlink (l), executable (x), empty (e), socket (s), pipe (p), char-device (c), block-device (b). This option can be specified more than once to include multiple file types. [value: <filetype>, required value, repeatable]
-  -e, --extension <ext>...
-          Filter by extension. By default, this matches all entry types (including directories whose names end with the extension). Use `--type` to restrict the search to specific types. Multiple extensions can be specified. If you want to search for files without extension, you can use the regex '^[^.]+$' as a normal search pattern. [value: <ext>, required value, repeatable]
-  -S, --size <size>...
-          Limit results based on the size of files using the format <+-><NUM><UNIT>. '+': file size must be greater than or equal to this '-': file size must be less than or equal to this. If neither '+' nor '-' is specified, file size must be exactly equal to this. 'NUM': The numeric size (e.g. 500) 'UNIT': The units for NUM. Allowed unit values: 'b': bytes 'k': kilobytes (base ten, 10^3 = 1000 bytes) 'm': megabytes 'g': gigabytes 't': terabytes 'ki': kibibytes (base two, 2^10 = 1024 bytes) 'mi': mebibytes 'gi': gibibytes 'ti': tebibytes [value: <size>, required value, repeatable]
-  --changed-within <date|dur>
-          Filter by file modification time (newer than). The argument can be provided as a specific point in time (YYYY-MM-DD HH:MM:SS or @timestamp) or as a duration (10h, 1d, 35min). If the time is not specified, it defaults to 00:00:00. '--change-newer-than', '--newer', or '--changed-after' can be used as aliases. Examples: --changed-within 2weeks --change-newer-than '2018-10-27 10:00:00' --newer 2018-10-27 --changed-after 1day [value: <date|dur>, required value, aliases: change-newer-than, newer, changed-after]
-  --changed-before <date|dur>
-          Filter by file modification time (older than). The argument can be provided as a specific point in time (YYYY-MM-DD HH:MM:SS or @timestamp) or as a duration (10h, 1d, 35min). '--change-older-than' or '--older' can be used as aliases. Examples: --changed-before '2018-10-27 10:00:00' --change-older-than 2weeks --older 2018-10-27 [value: <date|dur>, required value, aliases: change-older-than, older]
-  -o, --owner <user:group>
-          Filter by owning user and/or group. Format: [(user|uid)][:(group|gid)]. Either side is optional. Precede either side with a '!' to exclude files instead. Examples: --owner john --owner :students --owner '!john:students' [value: <user:group>, required value]
-  --format <fmt>
-          Print results according to template with placeholders: '{}': path, '{/}': basename, '{//}': parent directory, '{.}': path without file extension, '{/.}': basename without file extension. [value: <fmt>, required value]
-  -x, --exec <cmd>...
-          Execute a command for each search result in parallel (use --threads=1 for sequential command execution). There is no guarantee of the order commands are executed in. All positional arguments following --exec are considered to be arguments to the command - not to fd. Use ';' to terminate the command template if you need to continue passing fd arguments afterwards. Placeholders: '{}': path, '{/}': basename, '{//}': parent directory, '{.}': path without file extension, '{/.}': basename without file extension, '{{': literal '{', '}}': literal '}'. If no placeholder is present, an implicit "{}" at the end is assumed. Examples: fd -e zip -x unzip; fd -e h -e cpp -x clang-format -i; fd . src -x echo; fd -e jpg -x convert {} {.}.png [value: <cmd>, required value, repeatable]
-  -X, --exec-batch <cmd>...
-          Execute the given command once, with all search results as arguments. The order of the arguments is non-deterministic. Placeholders: '{}': path, '{/}': basename, '{//}': parent directory, '{.}': path without file extension, '{/.}': basename without file extension, '{{': literal '{', '}}': literal '}'. If no placeholder is present, an implicit "{}" at the end is assumed. Examples: fd -g 'test_*.py' -X vim; fd -e rs -X wc -l [value: <cmd>, required value, repeatable]
-  --batch-size <size>
-          Maximum number of arguments to pass to the command given with -X. If the number of results is greater than the given size, the command given with -X is run again with remaining arguments. A batch size of zero means there is no limit (default), but note that batching might still happen due to OS restrictions on the maximum length of command lines. [value: <size>, default: 0, required value]
-  --ignore-file <path>...
-          Add a custom ignore-file in '.gitignore' format. These files have a low precedence. [value: <path>, required value, repeatable]
-  -c, --color <when>
-          Declare when to use color for the pattern match output [default: auto] [possible values: auto, always, never]. Environment: NO_COLOR is respected (non-empty disables color in auto mode); LS_COLORS defines file styling. [value: <when>, default: auto, required value]
-  --hyperlink[=<when>]
-          Add a terminal hyperlink to a file:// url for each path in the output. If no argument is given, auto mode is used. This doesn't do anything for --exec and --exec-batch. [default: never] [possible values: auto, always, never] [value: <when>, default: never, optional value (use =) [bare flag: auto], aliases: hyper]
-  --ignore-contain <name>...
-          Ignore directories containing the named entry. [value: <name>, required value, repeatable]
-  -j, --threads <num>
-          Set number of threads to use for searching & executing (default: number of available CPU cores). [value: <num>, required value]
-  --max-buffer-time
-          Milliseconds to buffer before streaming search results to console. [required value]
-  --max-results <count>
-          Limit the number of search results to 'count' and quit immediately. [value: <count>, required value]
-  -1, --max-one-result
-          Limit the search to a single result and quit immediately. This is an alias for '--max-results=1'.
-  -q, --quiet
-          When the flag is present, the program does not print anything and will return with an exit code of 0 if there is at least one match. Otherwise, the exit code will be 1. '--has-results' can be used as an alias. [aliases: has-results]
-  --show-errors
-          Enable the display of filesystem errors for situations such as insufficient permissions or dead symlinks.
-  -C, --base-directory <path>
-          Change the current working directory of fd to the provided path. This means that search results will be shown with respect to the given base path. Note that relative paths which are passed to fd via the positional <path> argument or the '--search-path' option will also be resolved relative to this directory. [value: <path>, required value]
-  --path-separator <separator>
-          Set the path separator to use when printing file paths. The default is '/'. [value: <separator>, required value]
-  --search-path <search-path>...
-          Provide paths to search as an alternative to the positional <path> argument. Changes the usage to `fd [OPTIONS] --search-path <path> --search-path <path2> [<pattern>]` [value: <search-path>, required value, repeatable]
-  --strip-cwd-prefix[=<when>]
-          By default, relative paths are prefixed with './' when -x/--exec, -X/--exec-batch, or -0/--print0 are given, to reduce the risk of a path starting with '-' being treated as a command line option. Use this flag to change this behavior. If this flag is used without a value, it is equivalent to passing "always". [possible values: auto, always, never] [value: <when>, optional value (use =) [bare flag: always]]
-  --one-file-system
-          By default, fd will traverse the file system tree as far as other options dictate. With this flag, fd ensures that it does not descend into a different file system than the one it started in. Comparable to the -mount or -xdev filters of find(1). [aliases: mount, xdev]
-  -h, --help
-          Print help.
-  -V, --version
-          Print version.
-
-Examples:
-  fd . src -x echo
-  fd -e rs -X wc -l
-  fd --glob '**/.git/config'
-
-Bugs can be reported on GitHub: https://github.com/sharkdp/fd/issues
-```
-
-Note that options can be given after the pattern and/or path as well.
+Options may follow the pattern and the path. A pattern that starts with `-` must come after `--`.
 
 ## Benchmark
 
@@ -449,6 +313,7 @@ Let's search my home folder for files that end in `[0-9].jpg`. It contains ~750,
 subdirectories and about a 4 million files. For averaging and statistical analysis, I'm using
 [hyperfine](https://github.com/sharkdp/hyperfine). The following benchmarks are performed
 with a "warm"/pre-filled disk-cache (results for a "cold" disk-cache show the same trends).
+The numbers below are from upstream `fd`, not from this fork's release build. This fork does not enable `use-jemalloc` in the default features or in the release workflow.
 
 Let's start with `find`:
 ```
@@ -633,232 +498,46 @@ newlines). In the same way, the `-0` option of `xargs` tells it to read the inpu
 
 ## Installation
 
-[![Packaging status](https://repology.org/badge/vertical-allrepos/fd-find.svg)](https://repology.org/project/fd-find/versions)
+Distro packages, Homebrew, npm, and `cargo install fd-find` install upstream [sharkdp/fd](https://github.com/sharkdp/fd), not this fork.
 
-### On Ubuntu
-*... and other Debian-based Linux distributions.*
+### From this checkout
 
-If you run Ubuntu 19.04 (Disco Dingo) or newer, you can install the
-[officially maintained package](https://packages.ubuntu.com/fd-find):
-```
-apt install fd-find
-```
-Note that the binary is called `fdfind` as the binary name `fd` is already used by another package.
-It is recommended that after installation, you add a link to `fd` by executing command
-`ln -s $(which fdfind) ~/.local/bin/fd`, in order to use `fd` in the same way as in this documentation.
-Make sure that `$HOME/.local/bin` is in your `$PATH`.
+Rust 1.90.0 or newer is required. The build reads the git SHA, unless `FD_GIT_SHA_OVERRIDE` is a non-empty hexadecimal SHA (`build.rs`). Without git and without that variable, the build fails.
 
-If you use an older version of Ubuntu, you can download the latest `.deb` package from the
-[release page](https://github.com/sharkdp/fd/releases) and install it via:
-``` bash
-dpkg -i fd_9.0.0_amd64.deb # adapt version number and architecture
-```
-
-Note that the .deb packages on the release page for this project still name the executable `fd`.
-
-### On Debian
-
-If you run Debian Buster or newer, you can install the
-[officially maintained Debian package](https://tracker.debian.org/pkg/rust-fd-find):
-```
-apt-get install fd-find
-```
-Note that the binary is called `fdfind` as the binary name `fd` is already used by another package.
-It is recommended that after installation, you add a link to `fd` by executing command
-`ln -s $(which fdfind) ~/.local/bin/fd`, in order to use `fd` in the same way as in this documentation.
-Make sure that `$HOME/.local/bin` is in your `$PATH`.
-
-Note that the .deb packages on the release page for this project still name the executable `fd`.
-
-### On Fedora
-
-Starting with Fedora 28, you can install `fd` from the official package sources:
-``` bash
-dnf install fd-find
-```
-
-### On Alpine Linux
-
-You can install [the fd package](https://pkgs.alpinelinux.org/packages?name=fd)
-from the official sources, provided you have the appropriate repository enabled:
-```
-apk add fd
-```
-
-### On Arch Linux
-
-You can install [the fd package](https://www.archlinux.org/packages/extra/x86_64/fd/) from the official repos:
-```
-pacman -S fd
-```
-You can also install fd [from the AUR](https://aur.archlinux.org/packages/fd-git).
-
-### On Gentoo Linux
-
-You can use [the fd ebuild](https://packages.gentoo.org/packages/sys-apps/fd) from the official repo:
-```
-emerge -av fd
-```
-
-### On openSUSE Linux
-
-You can install [the fd package](https://software.opensuse.org/package/fd) from the official repo:
-```
-zypper in fd
-```
-
-### On Void Linux
-
-You can install `fd` via xbps-install:
-```
-xbps-install -S fd
-```
-
-### On ALT Linux
-
-You can install [the fd package](https://packages.altlinux.org/en/sisyphus/srpms/fd/) from the official repo:
-```
-apt-get install fd
-```
-
-### On Solus
-
-You can install [the fd package](https://github.com/getsolus/packages/tree/main/packages/f/fd) from the official repo:
-```
-eopkg install fd
-```
-
-### On RedHat Enterprise Linux (RHEL) 8/9/10, Almalinux 8/9/10, EuroLinux 8/9 or Rocky Linux 8/9/10
-
-You can install [the `fd` package](https://copr.fedorainfracloud.org/coprs/tkbcopr/fd/) from Fedora Copr.
+`rust-toolchain.toml` pins a nightly toolchain. The GitHub test and release workflows install stable, and that choice overrides the pin.
 
 ```bash
-dnf copr enable tkbcopr/fd
-dnf install fd
+cargo build --locked --bin fd
+cargo install --locked --path .
 ```
 
-A different version using the [slower](https://github.com/sharkdp/fd/pull/481#issuecomment-534494592) malloc [instead of jemalloc](https://bugzilla.redhat.com/show_bug.cgi?id=2216193#c1) is also available from the EPEL8/9 repo as the package `fd-find`.
+`--version` prints `fd <Cargo.toml version> (git <sha>)`.
 
-### On macOS
+### Release binaries
 
-You can install `fd` with [Homebrew](https://formulae.brew.sh/formula/fd):
-```
-brew install fd
-```
+Dispatch the `release` workflow (`.github/workflows/release.yml`). It does not run when you push a version tag.
 
-… or with MacPorts:
-```
-port install fd
-```
+The workflow uploads a pre-release tagged `release-<full git sha>`. Each asset is a zip of one binary:
 
-### On GuixOS
+- `fd-aarch64-apple-darwin`
+- `fd-x86_64-unknown-linux-musl`
+- `fd-aarch64-unknown-linux-musl`
 
-You can install [the fd package](https://guix.gnu.org/en/packages/fd-8.1.1/) from the official repo:
-```
-guix install fd
-```
+Linux binaries use `--profile dist` and static musl flags. The workflow rejects an ELF that has a dynamic interpreter or a `NEEDED` entry. The zip has no man page and no completions.
 
-### On Mise
-
-You can use [mise](https://github.com/jdx/mise) to install `fd` with a command like this:
-```
-mise use -g fd@latest
-```
-
-### On NixOS / via Nix
-
-You can use the [Nix package manager](https://nixos.org/nix/) to install `fd`:
-```
-nix-env -i fd
-```
-
-### Via Flox
-
-You can use [Flox](https://flox.dev) to install `fd` into a Flox environment:
-```
-flox install fd
-```
-
-### On FreeBSD
-
-You can install [the fd-find package](https://www.freshports.org/sysutils/fd) from the official repo:
-```
-pkg install fd-find
-```
-
-### From npm
-
-On Linux and macOS, you can install the [fd-find](https://npm.im/fd-find) package:
-
-```
-npm install -g fd-find
-```
-
-### From source
-
-With Rust's package manager [cargo](https://github.com/rust-lang/cargo), you can install *fd* via:
-```
-cargo install fd-find
-```
-Note that rust version *1.90.0* or later is required.
-
-`make` is also needed for the build.
-
-### From binaries
-
-The [release page](https://github.com/sharkdp/fd/releases) includes precompiled binaries for Linux and macOS. Statically-linked binaries are also available: look for archives with `musl` in the file name.
-
-## Development
-```bash
-git clone https://github.com/sharkdp/fd
-
-# Build
-cd fd
-cargo build
-
-# Run unit tests and integration tests
-cargo test
-
-# Install
-cargo install --path .
-```
+`scripts/create-archive.sh`, `scripts/create-deb.sh`, `Cross.toml`, and `package.metadata.binstall` in `Cargo.toml` still describe the upstream release. This workflow does not run them. See `doc/release-checklist.md`.
 
 ### Completions
 
-#### From Release Archives
+There is no `--gen-completions`. Hand-written files are in `contrib/completion/`: `_fd`, `_fdfind`, `fdfind.bash`, and `fdfind.fish`.
 
-Pre-built completion files are included in the release archives (`.tar.gz`/`.zip`) on the
-[Releases page](https://github.com/sharkdp/fd/releases), in the `autocomplete` directory.
-To use these completions:
-
-- **bash**: Source the `fd.bash` file in your `~/.bashrc`, or place it in a directory that gets sourced automatically.
-- **zsh**: Move `_fd` to a directory in your `fpath` (e.g., `~/.zfunc`).
-- **fish**: Copy `fd.fish` to `~/.config/fish/completions/`.
-- **powershell**: Source `_fd.ps1` from one of your [profile scripts](https://learn.microsoft.com/en-us/powershell/scripting/learn/shell/creating-profiles?view=powershell-7.5).
-
-#### Generate from fd
-
-You can also generate completions directly using `fd --gen-completions <shell>`:
-
-```bash
-# Bash
-fd --gen-completions bash > ~/.local/share/bash-completion/completions/fd
-
-# Zsh (ensure ~/.zfunc is in your fpath)
-fd --gen-completions zsh > ~/.zfunc/_fd
-
-# Fish
-fd --gen-completions fish > ~/.config/fish/completions/fd.fish
-
-# PowerShell
-fd --gen-completions powershell >> $PROFILE
-```
+`make install` and `make archive` still run `fd --gen-completions`, which exits with an error.
 
 ## Maintainers
 
-- [sharkdp](https://github.com/sharkdp)
-- [tmccombs](https://github.com/tmccombs)
-- [tavianator](https://github.com/tavianator)
+Report issues in this fork at <https://github.com/laputa-systems/fd/issues>.
+
+Upstream `fd` is maintained by [sharkdp](https://github.com/sharkdp), [tmccombs](https://github.com/tmccombs), and [tavianator](https://github.com/tavianator).
 
 ## License
 

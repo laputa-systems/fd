@@ -466,7 +466,6 @@ fn collect_exec_values(
                 }
             }
         }
-        // Safety: avoid infinite loop if no progress (raw_args exhausted).
         if parser.try_raw_args().is_none() {
             break;
         }
