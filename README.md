@@ -529,9 +529,7 @@ Linux binaries use `--profile dist` and static musl flags. The workflow rejects 
 
 ### Completions
 
-There is no `--gen-completions`. Hand-written files are in `contrib/completion/`: `_fd`, `_fdfind`, `fdfind.bash`, and `fdfind.fish`.
-
-`make install` and `make archive` still run `fd --gen-completions`, which exits with an error.
+There is no `--gen-completions`. Hand-written files are in `contrib/completion/`: `_fd`, `_fdfind`, `fdfind.bash`, and `fdfind.fish`. `make install` installs those files. `make archive` copies them and does not generate completions.
 
 ## Maintainers
 

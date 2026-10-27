@@ -1,24 +1,6 @@
 Prefix: FD
 Next: 5
 
-### FD-2 · P2 · `--version` keeps a stale git SHA after a rebuild
-
-- **Area:** Build
-- **Where:** `build.rs:40`, `src/cli/version.rs:5`
-- **Problem:** `build.rs` tells Cargo to rerun only when `$GIT_DIR/HEAD` changes. On this branch that file is the one line `ref: refs/heads/master`, so a new commit updates `.git/refs/heads/master` and not the text of `HEAD`. Cargo then reuses the old `FD_GIT_SHA`. Proved on 2026-10-27: `cargo test --locked --offline` relinked `target/debug/fd` (mtime 13:54:57) and `target/debug/fd --version` printed `fd 10.5.0 (git 763b512c35b0)` while `git rev-parse --short=12 HEAD` was `57a6b17b354d`. `.git/HEAD` was last modified 2026-10-25. `.git/refs/heads/master` was last modified 2026-10-27. A clean CI checkout still embeds the right SHA, because the build script runs once with no cached env.
-- **Recommendation:** Also emit `cargo:rerun-if-changed` for the ref `HEAD` points at (`git symbolic-ref -q HEAD`, then that path under the git dir). Keep failing the build when git is missing and `FD_GIT_SHA_OVERRIDE` is unset.
-- **Fix with:** none
-- **Effort:** S
-
-### FD-1 · P2 · `make install` runs a removed completions flag
-
-- **Area:** Build
-- **Where:** `Makefile:23`, `Makefile:56`, `src/cli/command.rs:839`
-- **Problem:** `make completions`, and therefore `make install` and `make archive`, run `fd --gen-completions`. The lexopt parser has no such option. `target/debug/fd --gen-completions bash` exits 1 with `unexpected argument '--gen-completions'`. Hand-written completion files in `contrib/completion/` are copied only after those generated files succeed, so they are never installed. The release workflow does not use this Makefile.
-- **Recommendation:** Delete the bash, fish, and PowerShell recipes that call `--gen-completions`. Install the files in `contrib/completion/` directly, or drop completion installation from `make install`.
-- **Fix with:** none
-- **Effort:** S
-
 ### FD-3 · P3 · default and release builds omit jemalloc
 
 - **Area:** Performance

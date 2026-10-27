@@ -2,6 +2,9 @@ use std::env;
 use std::path::PathBuf;
 use std::process::Command;
 
+#[path = "src/git_rerun.rs"]
+mod git_rerun;
+
 fn is_hex(s: &str) -> bool {
     !s.is_empty() && s.chars().all(|c| c.is_ascii_hexdigit())
 }
@@ -38,10 +41,20 @@ fn main() {
 
     if let Some(dir) = git_dir {
         let git_dir_path = PathBuf::from(dir);
-        println!(
-            "cargo:rerun-if-changed={}/HEAD",
-            git_dir_path.display()
-        );
+        let symbolic_ref = Command::new("git")
+            .args(["symbolic-ref", "-q", "HEAD"])
+            .output()
+            .ok()
+            .and_then(|output| {
+                if output.status.success() {
+                    Some(String::from_utf8_lossy(&output.stdout).trim().to_string())
+                } else {
+                    None
+                }
+            });
+        for path in git_rerun::git_rerun_paths(&git_dir_path, symbolic_ref.as_deref()) {
+            println!("cargo:rerun-if-changed={}", path.display());
+        }
         println!("cargo:rerun-if-env-changed=FD_GIT_SHA_OVERRIDE");
     } else {
         println!("cargo:rerun-if-env-changed=FD_GIT_SHA_OVERRIDE");

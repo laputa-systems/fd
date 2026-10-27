@@ -11,6 +11,8 @@ mod filter;
 mod fmt;
 mod hyperlink;
 mod output;
+#[cfg(test)]
+mod git_rerun;
 mod regex_helper;
 mod sanitize;
 mod walk;

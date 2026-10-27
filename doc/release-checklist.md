@@ -24,4 +24,4 @@ There is no `.deb` and no source tarball in that release. Each zip contains one 
 
 ## Not this release
 
-`make archive`, `scripts/create-archive.sh`, `scripts/create-deb.sh`, and `Cross.toml` are the upstream packaging path. `make archive` fails because it runs `fd --gen-completions`. Do not ship this fork with them.
+`make archive`, `scripts/create-archive.sh`, `scripts/create-deb.sh`, and `Cross.toml` are the upstream packaging path. `make archive` copies the hand-written files in `contrib/completion/` and does not run `--gen-completions`. `scripts/create-deb.sh` still installs `autocomplete/fd.bash` and `autocomplete/fd.fish`, which this tree does not generate. Do not ship this fork with them.
