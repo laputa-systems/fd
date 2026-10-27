@@ -16,7 +16,7 @@ Fork of sharkdp/fd. It finds files. This tree does not build for Windows. The CL
 - Option spellings live in `src/cli/command.rs`. `fd -h` and `fd --help` both render that list. `doc/fd.1` is a second copy. Update it when a spelling changes.
 - The default thread count is `available_parallelism`, capped at 64 (`default_num_threads` in `src/cli/fd.rs`).
 - The build embeds `FD_GIT_SHA` from `git rev-parse --short=12 HEAD`, or from `FD_GIT_SHA_OVERRIDE` when that variable is non-empty hexadecimal. With neither a git checkout nor the override, the build fails.
-- Default Cargo features are empty. `use-jemalloc` is off unless requested. macOS does not link jemalloc. The cfg in `Cargo.toml` matches `src/main.rs`.
+- Default Cargo features enable `use-jemalloc` on Linux. The musl release builds pass `--no-default-features` and use the system allocator. macOS does not link jemalloc. The cfg in `Cargo.toml` matches `src/main.rs`.
 - Published tags from this fork are `release-<git sha>` pre-releases, not `v<Cargo.toml version>`.
 
 ## Map

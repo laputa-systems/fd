@@ -97,4 +97,4 @@ strip = true
 [features]
 use-jemalloc = ["tikv-jemallocator"]
 base = ["use-jemalloc"]
-default = []
+default = ["use-jemalloc"]

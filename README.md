@@ -313,7 +313,7 @@ Let's search my home folder for files that end in `[0-9].jpg`. It contains ~750,
 subdirectories and about a 4 million files. For averaging and statistical analysis, I'm using
 [hyperfine](https://github.com/sharkdp/hyperfine). The following benchmarks are performed
 with a "warm"/pre-filled disk-cache (results for a "cold" disk-cache show the same trends).
-The numbers below are from upstream `fd`, not from this fork's release build. This fork does not enable `use-jemalloc` in the default features or in the release workflow.
+The numbers below are from upstream `fd`, not from this fork's release build. A default `cargo build` on Linux links `use-jemalloc`; the static musl release binaries use the system allocator.
 
 Let's start with `find`:
 ```

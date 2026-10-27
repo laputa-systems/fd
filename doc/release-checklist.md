@@ -6,7 +6,7 @@ How to publish binaries from this checkout. The workflow is `.github/workflows/r
 
 1. Run `cargo test --locked` on the commit you want to ship.
 2. Dispatch the `release` workflow on that commit. Pushing a `vX.Y.Z` tag does not start it.
-3. The workflow builds three targets with `cargo build --locked --profile dist --bin fd`:
+3. The workflow builds three targets with `cargo build --locked --profile dist --bin fd`, adding `--no-default-features` on the Linux targets so the static binaries stay on the system allocator:
    - `aarch64-apple-darwin` on `macos-26`
    - `x86_64-unknown-linux-musl` on `ubuntu-latest`
    - `aarch64-unknown-linux-musl` on `ubuntu-24.04-arm`

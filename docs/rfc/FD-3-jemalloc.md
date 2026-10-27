@@ -1,6 +1,6 @@
 # FD-3: jemalloc on default and release builds
 
-Status: draft
+Status: decided
 
 ## Summary
 
@@ -29,4 +29,4 @@ No design is settled. Linking jemalloc into the static musl binary can fail the 
 
 ## Decision
 
-Unset. Recommendation: restore `use-jemalloc` for the default Linux glibc build. Keep it off the musl release until a release-profile link passes the existing ELF check.
+Restore `use-jemalloc` in the default features for the Linux glibc build. The musl release builds pass `--no-default-features` until a release-profile jemalloc link passes the existing ELF check.
