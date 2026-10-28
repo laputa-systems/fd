@@ -31,7 +31,7 @@ where
             println!("{}", version::version_string());
             ExitCode::Success
         }
-        Ok(fd::ParseOutcome::Opts(opts)) => match fd::execute(opts) {
+        Ok(fd::ParseOutcome::Opts(opts)) => match fd::execute(*opts) {
             Ok(code) => code,
             Err(err) => {
                 print_error!("{}", format!("{err:#}"));

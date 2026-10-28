@@ -137,7 +137,7 @@ pub fn full_help() -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{format_option_invocation, full_help, render_help};
+    use super::{format_option_invocation, full_help};
     use crate::cli::command::{FD_OPTIONS, FD_POSITIONALS, find_by_long, find_by_short};
     use crate::cli::fd::SPEC;
     use std::collections::HashSet;

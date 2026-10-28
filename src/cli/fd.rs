@@ -391,7 +391,7 @@ fn looks_like_option(s: &OsString) -> bool {
 pub enum ParseOutcome {
     Help,
     Version,
-    Opts(Opts),
+    Opts(Box<Opts>),
 }
 
 fn required_value(
@@ -450,13 +450,12 @@ fn collect_exec_values(
                     break;
                 } else {
                     // Consume as exec value even if it looks like an option.
-                    if let Some(mut raws) = parser.try_raw_args() {
-                        if raws.peek().is_some() {
-                            if let Some(v) = raws.next() {
-                                vals.push(v);
-                                continue;
-                            }
-                        }
+                    if let Some(mut raws) = parser.try_raw_args()
+                        && raws.peek().is_some()
+                        && let Some(v) = raws.next()
+                    {
+                        vals.push(v);
+                        continue;
                     }
                     // Fallback: use value() (should not normally hit).
                     match parser.value() {
@@ -563,7 +562,7 @@ fn parse_with(parser: &mut lexopt::Parser) -> Result<ParseOutcome, CliError> {
         return Ok(ParseOutcome::Version);
     }
 
-    finalize(opts, positionals, exec_cmds, exec_batch_cmds).map(ParseOutcome::Opts)
+    finalize(opts, positionals, exec_cmds, exec_batch_cmds).map(|o| ParseOutcome::Opts(Box::new(o)))
 }
 
 #[allow(clippy::too_many_lines)]
@@ -1425,7 +1424,7 @@ mod tests {
 
     fn opts(args: &[&str]) -> Opts {
         match parse(args).expect("parse ok") {
-            ParseOutcome::Opts(o) => o,
+            ParseOutcome::Opts(o) => *o,
             ParseOutcome::Help => panic!("unexpected help"),
             ParseOutcome::Version => panic!("unexpected version"),
         }

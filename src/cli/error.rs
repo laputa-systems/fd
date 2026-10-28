@@ -8,13 +8,10 @@ pub enum CliError {
     UnknownShort(char),
     MissingValue { option: &'static str },
     InvalidValue { option: &'static str, value: String, reason: String },
-    MissingPositional { name: &'static str },
-    UnexpectedPositional { value: String },
     Conflict { first: String, second: String },
     Requires { option: &'static str, requires: &'static str },
     NonUtf8 { option: &'static str },
     EmptyExec { option: &'static str },
-    EmptyValue { option: &'static str },
 }
 
 impl fmt::Display for CliError {
@@ -29,12 +26,6 @@ impl fmt::Display for CliError {
                 f,
                 "error: invalid value '{value}' for '--{option}': {reason}"
             ),
-            Self::MissingPositional { name } => {
-                write!(f, "error: missing required positional '{name}'")
-            }
-            Self::UnexpectedPositional { value } => {
-                write!(f, "error: unexpected positional '{value}'")
-            }
             Self::Conflict { first, second } => write!(
                 f,
                 "error: the argument '{first}' cannot be used with '{second}'"
@@ -48,9 +39,6 @@ impl fmt::Display for CliError {
                 "error: invalid UTF-8 for '--{option}': value must be valid UTF-8"
             ),
             Self::EmptyExec { option } => {
-                write!(f, "error: a value is required for '--{option}' but none was supplied")
-            }
-            Self::EmptyValue { option } => {
                 write!(f, "error: a value is required for '--{option}' but none was supplied")
             }
         }

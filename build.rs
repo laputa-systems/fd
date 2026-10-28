@@ -10,21 +10,21 @@ fn is_hex(s: &str) -> bool {
 }
 
 fn main() {
-    if let Ok(ov) = env::var("FD_GIT_SHA_OVERRIDE") {
-        if !ov.trim().is_empty() {
-            let sha = ov.trim().to_lowercase();
-            assert!(
-                is_hex(&sha),
-                "FD_GIT_SHA_OVERRIDE must be hexadecimal, got '{ov}'"
-            );
-            assert!(
-                sha != "unknown" && sha != "dirty",
-                "FD_GIT_SHA_OVERRIDE must not be 'unknown'/'dirty'"
-            );
-            println!("cargo:rerun-if-env-changed=FD_GIT_SHA_OVERRIDE");
-            println!("cargo:rustc-env=FD_GIT_SHA={sha}");
-            return;
-        }
+    if let Ok(ov) = env::var("FD_GIT_SHA_OVERRIDE")
+        && !ov.trim().is_empty()
+    {
+        let sha = ov.trim().to_lowercase();
+        assert!(
+            is_hex(&sha),
+            "FD_GIT_SHA_OVERRIDE must be hexadecimal, got '{ov}'"
+        );
+        assert!(
+            sha != "unknown" && sha != "dirty",
+            "FD_GIT_SHA_OVERRIDE must not be 'unknown'/'dirty'"
+        );
+        println!("cargo:rerun-if-env-changed=FD_GIT_SHA_OVERRIDE");
+        println!("cargo:rustc-env=FD_GIT_SHA={sha}");
+        return;
     }
 
     let git_dir = Command::new("git")

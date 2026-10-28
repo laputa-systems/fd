@@ -21,7 +21,7 @@ pub fn path_absolute_form(path: &Path) -> io::Result<PathBuf> {
 }
 
 pub fn absolute_path(path: &Path) -> io::Result<PathBuf> {
-    Ok(path_absolute_form(path)?)
+    path_absolute_form(path)
 }
 
 pub fn is_existing_directory(path: &Path) -> bool {
