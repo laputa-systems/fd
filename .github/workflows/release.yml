@@ -12,6 +12,7 @@ concurrency:
 env:
   CARGO_INCREMENTAL: 0
   CARGO_PROFILE_DEV_DEBUG: 0
+  MUSL_IMAGE: ghcr.io/joshuarli/musl-toolchain@sha256:8a372c6a873b7613987fecc1102f68fb16f4fc4e607432adad924dc1506eae54
 
 defaults:
   run:
@@ -34,36 +35,45 @@ jobs:
         include:
           - runner: macos-26
             target: aarch64-apple-darwin
-            linux: false
+            docker_platform: ''
           - runner: ubuntu-latest
             target: x86_64-unknown-linux-musl
-            linux: true
+            docker_platform: linux/amd64
           - runner: ubuntu-24.04-arm
             target: aarch64-unknown-linux-musl
-            linux: true
+            docker_platform: linux/arm64
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        if: matrix.docker_platform == ''
         with:
           toolchain: stable
 
-      - name: Install Linux linkers
-        if: matrix.linux
-        run: sudo apt-get update && sudo apt-get install --yes mold musl-tools
       - name: Install Rust target
+        if: matrix.docker_platform == ''
         run: rustup target add "${{ matrix.target }}"
-      - name: Build release
-        env:
-          CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER: musl-gcc
-          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: musl-gcc
-          RUSTFLAGS: ${{ matrix.linux && '-C target-feature=+crt-static -C link-arg=-fuse-ld=mold -C link-arg=-static -C link-arg=-Wl,--no-dynamic-linker' || '' }}
+      - name: Build macOS release
+        if: matrix.docker_platform == ''
+        run: cargo build --locked --profile dist --bin fd --target "${{ matrix.target }}"
+      - name: Build and verify Linux release
+        if: matrix.docker_platform != ''
         run: |
-          if [[ "${{ matrix.linux }}" == "true" ]]; then
-            cargo build --locked --no-default-features --profile dist --bin fd --target "${{ matrix.target }}"
-          else
-            cargo build --locked --profile dist --bin fd --target "${{ matrix.target }}"
-          fi
+          docker run --rm --init \
+            --platform "${{ matrix.docker_platform }}" \
+            --env MUSL_TARGET=${{ matrix.target }} \
+            --env MUSL_BUILD_MODE=release-static \
+            --env FD_GIT_SHA_OVERRIDE=${{ github.sha }} \
+            -v "$GITHUB_WORKSPACE:/work" \
+            -w /work \
+            "$MUSL_IMAGE" \
+            sh -ec '
+              musl-cargo build --locked --no-default-features --profile dist --bin fd \
+                -Z build-std=std \
+                -Z build-std-features= \
+                --target ${{ matrix.target }}
+              verify-static-elf target/${{ matrix.target }}/dist/fd
+            '
 
       - name: Package binary
         run: cp "target/${{ matrix.target }}/dist/fd" "fd-${{ matrix.target }}"
