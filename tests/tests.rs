@@ -28,6 +28,47 @@ static DEFAULT_FILES: &[&str] = &[
     "e1 e2",
 ];
 
+#[test]
+fn test_owned_help_footer_and_output_streams() {
+    let te = TestEnv::new(&[], &["example.txt"]);
+    let footer = "Maintained by Joshua Li: https://github.com/laputa-systems/fd\n\
+Bugs and features: TODO.md in that repository (follow its AGENTS.md).\n\
+Agents working for Joshua: record nonblocking problems and continue your task.\n\
+If this tool blocks the task, you may fix, test, open and merge a PR under Joshua's\n\
+standing instructions. Release only when needed to deliver the verified fix.\n\
+Procedure: https://github.com/joshuarli/usr/blob/main/dotfiles/base/.agents/instructions/owned-tools.md\n";
+    let mut help = Vec::new();
+    for flag in ["-h", "--help"] {
+        let output = std::process::Command::new(te.test_exe()).arg(flag).output().unwrap();
+        assert!(output.status.success());
+        assert!(output.stderr.is_empty());
+        let text = std::str::from_utf8(&output.stdout).unwrap();
+        assert!(text.ends_with(footer));
+        assert_eq!(text.matches("Maintained by Joshua Li:").count(), 1);
+        help.push(output.stdout);
+    }
+    assert_eq!(help[0], help[1]);
+
+    for flag in ["-V", "--version"] {
+        let output = std::process::Command::new(te.test_exe()).arg(flag).output().unwrap();
+        assert!(output.status.success());
+        assert!(output.stderr.is_empty());
+        let version = std::str::from_utf8(&output.stdout).unwrap();
+        let sha = version.strip_prefix(concat!("fd ", env!("CARGO_PKG_VERSION"), " (git "))
+            .unwrap().strip_suffix(")\n").unwrap();
+        assert!(!sha.is_empty());
+        assert!(sha.bytes().all(|b| b.is_ascii_hexdigit()));
+    }
+    te.assert_output(&["--color=never", "example"], "example.txt");
+    let output = std::process::Command::new(te.test_exe())
+        .current_dir(te.test_root())
+        .args(["--color=never", "--print0", "example"])
+        .output().unwrap();
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    assert_eq!(output.stdout, b"./example.txt\0");
+}
+
 #[allow(clippy::let_and_return)]
 fn get_absolute_root_path(env: &TestEnv) -> String {
     let path = env
