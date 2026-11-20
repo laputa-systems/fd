@@ -13,21 +13,30 @@ pub fn git_rerun_paths(git_dir: &Path, symbolic_ref: Option<&str>) -> Vec<PathBu
         .map(str::trim)
         .filter(|reference| !reference.is_empty())
     {
-        paths.push(common_dir.join(reference));
+        paths.push(existing_path_or_parent(common_dir.join(reference)));
     }
-    paths.push(common_dir.join("packed-refs"));
+    paths.push(existing_path_or_parent(common_dir.join("packed-refs")));
     paths
+}
+
+fn existing_path_or_parent(mut path: PathBuf) -> PathBuf {
+    while !path.exists() {
+        assert!(path.pop(), "Git watch path has no existing ancestor");
+    }
+    path
 }
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
-
     use super::git_rerun_paths;
 
     #[test]
-    fn branch_watches_head_and_the_ref_it_points_at() {
-        let git_dir = Path::new("fictional-git-dir");
+    fn branch_watches_head_and_the_ref_it_points_at() -> std::io::Result<()> {
+        let temp = tempfile::tempdir()?;
+        let git_dir = temp.path();
+        std::fs::create_dir_all(git_dir.join("refs/heads"))?;
+        std::fs::write(git_dir.join("refs/heads/topic"), "1234\n")?;
+        std::fs::write(git_dir.join("packed-refs"), "")?;
         let paths = git_rerun_paths(git_dir, Some("refs/heads/topic\n"));
         assert_eq!(
             paths,
@@ -37,20 +46,25 @@ mod tests {
                 git_dir.join("packed-refs"),
             ]
         );
+        Ok(())
     }
 
     #[test]
-    fn detached_head_watches_only_head() {
-        let git_dir = Path::new("/repo/.git");
+    fn detached_head_watches_head_and_common_directory() -> std::io::Result<()> {
+        let temp = tempfile::tempdir()?;
+        let git_dir = temp.path();
         let paths = git_rerun_paths(git_dir, None);
-        assert_eq!(paths, vec![git_dir.join("HEAD"), git_dir.join("packed-refs")]);
+        assert_eq!(paths, vec![git_dir.join("HEAD"), git_dir.to_path_buf()]);
+        Ok(())
     }
 
     #[test]
-    fn blank_symbolic_ref_watches_only_head() {
-        let git_dir = Path::new("fictional-git-dir");
+    fn blank_symbolic_ref_watches_head_and_common_directory() -> std::io::Result<()> {
+        let temp = tempfile::tempdir()?;
+        let git_dir = temp.path();
         let paths = git_rerun_paths(git_dir, Some(" \n"));
-        assert_eq!(paths, vec![git_dir.join("HEAD"), git_dir.join("packed-refs")]);
+        assert_eq!(paths, vec![git_dir.join("HEAD"), git_dir.to_path_buf()]);
+        Ok(())
     }
 
     #[test]
@@ -59,8 +73,35 @@ mod tests {
         let git_dir = temp.path().join("worktrees/topic");
         std::fs::create_dir_all(&git_dir)?;
         std::fs::write(git_dir.join("commondir"), "../..\n")?;
+        std::fs::create_dir_all(temp.path().join("refs/heads"))?;
+        std::fs::write(temp.path().join("refs/heads/topic"), "1234\n")?;
         let paths = git_rerun_paths(&git_dir, Some("refs/heads/topic"));
         assert!(paths.contains(&temp.path().join("refs/heads/topic")));
+        Ok(())
+    }
+
+    #[test]
+    fn absent_packed_refs_do_not_create_a_missing_watch() -> std::io::Result<()> {
+        let temp = tempfile::tempdir()?;
+        let git_dir = temp.path();
+        std::fs::create_dir_all(git_dir.join("refs/heads"))?;
+        std::fs::write(git_dir.join("HEAD"), "ref: refs/heads/topic\n")?;
+        std::fs::write(git_dir.join("refs/heads/topic"), "1234\n")?;
+        assert!(git_rerun_paths(git_dir, Some("refs/heads/topic"))
+            .iter()
+            .all(|path| path.exists()));
+        Ok(())
+    }
+
+    #[test]
+    fn packed_branch_watches_nearest_existing_ref_directory() -> std::io::Result<()> {
+        let temp = tempfile::tempdir()?;
+        let git_dir = temp.path();
+        std::fs::create_dir_all(git_dir.join("refs/heads"))?;
+        std::fs::write(git_dir.join("packed-refs"), "packed\n")?;
+        let paths = git_rerun_paths(git_dir, Some("refs/heads/nested/topic"));
+        assert!(paths.contains(&git_dir.join("refs/heads")));
+        assert!(paths.contains(&git_dir.join("packed-refs")));
         Ok(())
     }
 }
