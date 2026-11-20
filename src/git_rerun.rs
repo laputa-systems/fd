@@ -3,7 +3,9 @@ use std::path::{Path, PathBuf};
 pub fn git_rerun_paths(git_dir: &Path, symbolic_ref: Option<&str>) -> Vec<PathBuf> {
     let mut paths = vec![git_dir.join("HEAD")];
     let common_dir = match std::fs::read_to_string(git_dir.join("commondir")) {
-        Ok(path) => git_dir.join(path.trim()).canonicalize().expect("resolve Git common directory"),
+        Ok(path) => git_dir.join(path.trim()).canonicalize().unwrap_or_else(|error| {
+            panic!("resolve Git common directory: {error}")
+        }),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => git_dir.to_path_buf(),
         Err(error) => panic!("read Git common directory: {error}"),
     };
@@ -52,12 +54,13 @@ mod tests {
     }
 
     #[test]
-    fn linked_worktree_watches_common_branch_ref() {
-        let temp = tempfile::tempdir().unwrap();
+    fn linked_worktree_watches_common_branch_ref() -> std::io::Result<()> {
+        let temp = tempfile::tempdir()?;
         let git_dir = temp.path().join("worktrees/topic");
-        std::fs::create_dir_all(&git_dir).unwrap();
-        std::fs::write(git_dir.join("commondir"), "../..\n").unwrap();
+        std::fs::create_dir_all(&git_dir)?;
+        std::fs::write(git_dir.join("commondir"), "../..\n")?;
         let paths = git_rerun_paths(&git_dir, Some("refs/heads/topic"));
         assert!(paths.contains(&temp.path().join("refs/heads/topic")));
+        Ok(())
     }
 }
