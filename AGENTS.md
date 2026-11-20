@@ -30,6 +30,8 @@ Fork of sharkdp/fd. It finds files. This tree does not build for Windows. The CL
 ## Verification
 
 - `make test` runs unit and CLI integration tests; `make lint` runs Clippy on all targets.
+- Edit: `cargo test --locked --bin fd cli::fd::tests` for parser edits; Change: `make test` for shared behavior (300 tests on macOS).
+- Scenario: external benchmark workload when available; Full: release target matrix, manual only. Costs depend on build cache and host load.
 - Tests need TMPDIR outside any Git repository because `test_respect_ignore_files` assumes it.
 - CLI parsing and errors: `cli::fd::tests` and `test_number_parsing_errors`; help and streams: `test_owned_help_footer_and_output_streams`.
 - Search output and flags: `tests/tests.rs`; exit status: `exit_codes::tests` and `test_quiet`.
