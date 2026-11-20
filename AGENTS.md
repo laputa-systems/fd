@@ -8,7 +8,7 @@ Fork of sharkdp/fd. It finds files. This tree does not build for Windows. The CL
 - `cargo build --locked --bin fd` builds the debug binary.
 - The release binary is `cargo build --locked --profile dist --bin fd` with the linker flags in `.github/workflows/release.yml`.
 
-`rust-toolchain.toml` pins `nightly-2026-09-15`. The test and release workflows pass `toolchain: stable` to `dtolnay/rust-toolchain`, which overrides that file.
+`rust-toolchain.toml` pins `nightly-2026-11-09`. The test and release workflows pass `toolchain: stable` to `dtolnay/rust-toolchain`, which overrides that file.
 
 ## Invariants
 
@@ -26,3 +26,14 @@ Fork of sharkdp/fd. It finds files. This tree does not build for Windows. The CL
 - Allocator choice: [FD-3](docs/rfc/FD-3-jemalloc.md)
 - Search: `src/walk.rs`, `src/cli/fd.rs`
 - Tests: `tests/tests.rs`
+
+## Verification
+
+- `make test` runs unit and CLI integration tests; `make lint` runs Clippy on all targets.
+- Tests need TMPDIR outside any Git repository because `test_respect_ignore_files` assumes it.
+- CLI parsing and errors: `cli::fd::tests` and `test_number_parsing_errors`; help and streams: `test_owned_help_footer_and_output_streams`.
+- Search output and flags: `tests/tests.rs`; exit status: `exit_codes::tests` and `test_quiet`.
+- Ignore files and paths: `test_respect_ignore_files`, `test_gitignore_and_fdignore`, and the path tests in `tests/tests.rs`.
+- File output and command execution: `test_print0`, `test_exec`, and `test_exec_invalid_utf8`.
+- No public library, network endpoint, or owned persistent file format; fd reads Git and fd ignore files.
+- Performance workload: none locally; README links an external benchmark repository. Search and startup are performance-sensitive.
