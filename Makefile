@@ -49,7 +49,10 @@ install: $(EXE)
 	install -Dm644 contrib/completion/fdfind.fish $(DESTDIR)/$(datadir)/fish/vendor_completions.d/fdfind.fish
 	install -Dm644 doc/fd.1 $(DESTDIR)/$(datadir)/man/man1/$(exe_name).1
 
-.PHONY: lint
+.PHONY: test lint
+
+test:
+	cargo test --locked
 
 lint:
 	cargo clippy --locked --all-targets -- --deny warnings
