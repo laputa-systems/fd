@@ -29,6 +29,8 @@ Fork of sharkdp/fd. It finds files. This tree does not build for Windows. The CL
 
 ## Verification
 
+`make clean` removes this checkout’s build output in `./target`. It refuses symlinks and ordinary files at those paths.
+
 - `make test` runs unit and CLI integration tests; `make lint` runs Clippy on all targets.
 - Edit: `cargo test --locked --bin fd cli::fd::tests` for parser edits; Change: `make test` for shared behavior (301 tests on macOS).
 - Scenario: external benchmark workload when available; Full: release target matrix, manual only. Costs depend on build cache and host load.
